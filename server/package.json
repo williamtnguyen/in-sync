@@ -1,0 +1,33 @@
+{
+  "name": "senior-project",
+  "version": "1.0.0",
+  "description": "Synchronous video/music streaming application",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon server.ts",
+    "build": "tsc -p .",
+    "start": "node build/server.js",
+    "lint": "tslint --project tsconfig.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^2.3.0",
+    "uuid": "^8.3.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.8",
+    "@types/node": "^14.11.8",
+    "@types/socket.io": "^2.1.11",
+    "nodemon": "^2.0.4",
+    "prettier": "^2.1.2",
+    "ts-node": "^9.0.0",
+    "tslint": "^6.1.3",
+    "tslint-config-airbnb": "^5.11.2",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^4.0.3"
+  }
+}
