@@ -1,11 +1,11 @@
 import express, { Application } from 'express';
 import http, { Server } from 'http';
-import socketIO, { Server as WebSocketServer } from 'socket.io';
-import socketHandler from './util/socket-events';
+import socketIo, { Server as WebSocketServer } from 'socket.io';
+import socketHandler from './util/socket-handler';
 
 const app: Application = express();
 const server: Server = http.createServer(app);
-const io: WebSocketServer = socketIO(server);
+const io: WebSocketServer = socketIo(server, { serveClient: false });
 socketHandler(io);
 
 const PORT: string | number = process.env.PORT || 5000;
