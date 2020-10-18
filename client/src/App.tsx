@@ -13,21 +13,19 @@ export const SocketContext = createContext({} as SocketContextProps);
 
 const App = () => {
   const [socket, setSocket] = useState({});
-  const updateSocket = (socket: SocketIOClient.Socket) => {
-    setSocket(socket);
-  };
 
   const socketContext = {
     hostSocket: socket,
-    updateHostSocketBuffer: updateSocket,
+    updateHostSocketBuffer: setSocket,
   };
+
   return (
-    <SocketContext.Provider value={socketContext}>
-      <Router>
+    <Router>
+      <SocketContext.Provider value={socketContext}>
         <Route exact path="/room/:id" component={Room} />
         <Route exact path="/" component={Landing} />
-      </Router>
-    </SocketContext.Provider>
+      </SocketContext.Provider>
+    </Router>
   );
 };
 

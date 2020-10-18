@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  ChangeEvent,
+  FormEvent,
+} from 'react';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 import { createConnection } from '../utils/socket-client';
 import { SocketContext } from '../App';
@@ -20,27 +26,58 @@ interface Client {
 }
 
 const Room = ({ location, match }: RoomProps & any) => {
-  const [clients, setClients] = useState([location.state.displayName]);
+  const [clients, setClients] = useState(
+    location.state ? [location.state.displayName] : []
+  );
+  const [enterDisplayName, setEnterDisplayName] = useState(false);
+  const [displayNameInput, setDisplayNameInput] = useState('');
+  const [displayName, setDisplayName] = useState(
+    location.state ? location.state.displayName : ''
+  );
   const { hostSocket } = useContext(SocketContext);
 
-  // Connects a client if they are not host and subscribes to the room's broadcasts
+  // Creates a socket connection to server if client is not room host
   const connectClient = async () => {
-    const { hostId, displayName } = location.state;
+    if (location.state) {
+      const { hostId } = location.state;
 
-    if (!hostId) {
-      const { id } = match.params;
-      const newSocket = await createConnection(displayName, id);
-      updateClientList(newSocket);
-    } else {
-      updateClientList(hostSocket);
+      // No hostId was sent as prop, therefore new client. Create connection
+      if (!hostId) {
+        const { id } = match.params;
+        const newSocket = await createConnection(displayName, id);
+        updateClientList(newSocket);
+      }
+      // hostId was sent as prop, just subscibe to updateClientList broadcasts
+      else {
+        updateClientList(hostSocket);
+      }
+    }
+    // Entered room from direct link rather than redirect from landing page. Prompt for displayName
+    else {
+      setEnterDisplayName(true);
     }
   };
 
+  // Subscribes to updateClientList broadcasts from WebSocketServer
   const updateClientList = (socket: SocketIOClient.Socket) => {
     socket.on('updateClientList', (newClientList: Client[]) => {
-      // console.log(newClientList);
       setClients(newClientList);
     });
+  };
+
+  const handleInputChange = (event: ChangeEvent) => {
+    const element = event.target as HTMLInputElement;
+    setDisplayNameInput(element.value);
+  };
+
+  const handleFormSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+
+    const { id } = match.params;
+    const newSocket = await createConnection(displayNameInput, id);
+    setDisplayName(displayNameInput);
+    updateClientList(newSocket);
+    setEnterDisplayName(false);
   };
 
   useEffect(() => {
@@ -57,27 +94,49 @@ const Room = ({ location, match }: RoomProps & any) => {
         justifyContent: 'center',
       }}
     >
-      <div className="text-center">
-        {' '}
-        <h1 className="mb-4">hey, {location.state.displayName}</h1>
-        <h5 className="mb-4">Currently connected clients:</h5>
-        <table className="table">
-          <thead>
-            <tr>
-              <th scope="col">clientID</th>
-              <th scope="col">First</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients.map((client: Client) => (
-              <tr key={client.id}>
-                <td>{client.id}</td>
-                <td>{client.name}</td>
+      {enterDisplayName ? (
+        <div className="card mb-5">
+          <div className="card-body">
+            <form onSubmit={(event) => handleFormSubmit(event)}>
+              <h3 className="mb-3">Enter display name to join session</h3>
+              <div className="form-group">
+                <label htmlFor="createDisplayName">Display Name</label>
+                <input
+                  type="text"
+                  className="form-control mb-3"
+                  id="createDisplayName"
+                  onChange={handleInputChange}
+                />
+                <button type="submit" className="btn btn-warning">
+                  Join Session
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center">
+          {' '}
+          <h1 className="mb-4">hey, {displayName}</h1>
+          <h5 className="mb-4">Currently connected clients:</h5>
+          <table className="table">
+            <thead>
+              <tr>
+                <th scope="col">clientID</th>
+                <th scope="col">First</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {clients.map((client: Client) => (
+                <tr key={client.id}>
+                  <td>{client.id}</td>
+                  <td>{client.name}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
