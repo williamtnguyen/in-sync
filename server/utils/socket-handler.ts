@@ -17,7 +17,7 @@ const socketHandler = (io: WebSocketServer) => {
       Rooms.addRoom(roomId);
       Rooms.addClient(roomId, clientId, clientName);
       // tslint:disable-next-line: no-console
-      Rooms.getRoomClients(roomId).forEach((client) => console.log(client));
+      Rooms.getRoomClients(roomId).forEach((client) => { console.log(client); });
 
       socket.broadcast
         .to(roomId)
