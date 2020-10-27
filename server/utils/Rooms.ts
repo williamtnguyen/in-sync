@@ -38,9 +38,15 @@ class Rooms {
 
   addClient(roomId: string, clientId: string, clientName: string): void {
     if (this.roomMap[roomId]) {
-      const newClient: Client = { id: clientId, name: clientName };
-      this.roomMap[roomId].push(newClient);
-      this.clientMap[clientId] = roomId;
+      let createClient:boolean = true;
+      this.roomMap[roomId].forEach((client) => {
+        client.name === clientName ? createClient = false : createClient = true;
+      });
+      if (createClient) {
+        const newClient: Client = { id: clientId, name: clientName };
+        this.roomMap[roomId].push(newClient);
+        this.clientMap[clientId] = roomId;
+      }
     } else {
       throw new Error('Room with this ID does not exist');
     }
