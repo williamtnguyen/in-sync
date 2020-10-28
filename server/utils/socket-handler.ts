@@ -1,5 +1,6 @@
 import { Server as WebSocketServer, Socket } from 'socket.io';
 import Rooms from './Rooms';
+import { createClientNotifier } from './socket-notifier';
 
 const socketHandler = (io: WebSocketServer) => {
   // Client connection event
@@ -11,20 +12,47 @@ const socketHandler = (io: WebSocketServer) => {
     socket.on('join', (clientData) => {
       // tslint:disable-next-line: no-console
       console.log('join broadcast triggered');
-      const { roomId, clientId, clientName } = clientData;
+      const { roomId, clientId, clientName, youtubeID } = clientData;
       socket.join(roomId);
 
-      Rooms.addRoom(roomId);
+      Rooms.addRoom(roomId, youtubeID);
       Rooms.addClient(roomId, clientId, clientName);
       // tslint:disable-next-line: no-console
       Rooms.getRoomClients(roomId).forEach((client) => { console.log(client); });
 
       socket.broadcast
         .to(roomId)
-        .emit('clientJoin', { roomId, clientId, clientName });
+        .emit('notifyClient', createClientNotifier('clientJoin', { roomId, clientId, clientName }));
 
       io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
+
+      if (!youtubeID) {
+        const room = Rooms.getRoom(roomId);
+        socket.emit(
+          'notifyClient',
+          createClientNotifier('CHANGE_VIDEO', {
+            youtubeID: room.youtubeID
+          })
+        );
+      }
     });
+
+    socket.on('videoStateChange', data => {
+      const client = Rooms.getClient(socket.id);
+      console.log('notify about ', data.type);
+      socket.broadcast.to(
+        Rooms.getClientRoomId(client.id)).emit(
+          'notifyClient',
+          createClientNotifier('updateVideoState', {
+            type: data.type,
+            ...data.payload,
+            client: {
+              name: client.name,
+              socketId: socket.id
+            }
+          })
+        );   
+    }); 
   });
 };
 
