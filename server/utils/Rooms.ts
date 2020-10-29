@@ -8,7 +8,7 @@ export interface ClientMap {
 }
 
 export interface RoomMap {
-  [roomId: string]: Client[];
+  [roomId: string]: { clients: Client[], youtubeID: string };
 }
 
 /**
@@ -23,28 +23,32 @@ class Rooms {
     this.clientMap = {};
   }
 
-  addRoom(roomId: string): void {
+  addRoom(roomId: string, youtubeID: string): void {   
     if (!this.roomMap[roomId]) {
-      this.roomMap[roomId] = [];
+      const roomDetails = {
+        clients: [],
+        youtubeID
+      };
+      this.roomMap[roomId] = roomDetails;
     }
   }
 
   getRoomClients(roomId: string): Client[] {
     if (this.roomMap[roomId]) {
-      return this.roomMap[roomId];
+      return this.roomMap[roomId].clients;
     }
     throw new Error('Room with this ID does not exist');
   }
 
-  addClient(roomId: string, clientId: string, clientName: string): void {
+  addClient(roomId: string, clientId: string, clientName: string): void {    
     if (this.roomMap[roomId]) {
       let createClient:boolean = true;
-      this.roomMap[roomId].forEach((client) => {
+      this.roomMap[roomId].clients.forEach((client) => {
         client.name === clientName ? createClient = false : createClient = true;
       });
       if (createClient) {
         const newClient: Client = { id: clientId, name: clientName };
-        this.roomMap[roomId].push(newClient);
+        this.roomMap[roomId].clients.push(newClient);
         this.clientMap[clientId] = roomId;
       }
     } else {
@@ -70,6 +74,16 @@ class Rooms {
       throw new Error('No clients with this ID exist in any rooms');
     } else {
       return lookup;
+    }
+  }
+
+  getRoom(roomID: string) {
+    return this.roomMap[roomID];
+  }
+
+  setVideoLink(roomID: string, newYoutubeID: string): void {
+    if (this.roomMap[roomID]) {
+      this.roomMap[roomID].youtubeID = newYoutubeID;
     }
   }
 }

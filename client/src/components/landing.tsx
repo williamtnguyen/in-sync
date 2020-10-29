@@ -2,22 +2,26 @@ import React, { useState, useContext, ChangeEvent, FormEvent } from 'react';
 import { createConnection } from '../utils/socket-client';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 import { SocketContext } from '../App';
+import { extractVideoID } from '../utils/helpers';
 
 const Landing = (props: RouteComponentProps & any) => {
   const [createDisplayName, setCreateDisplayName] = useState('');
   const [joinRoomId, setJoinRoomId] = useState('');
   const [joinDisplayName, setJoinDisplayName] = useState('');
+  const [youtubeLink, setYoutubeLink] = useState('');
   const { updateHostSocketBuffer } = useContext(SocketContext);
 
-  const startSession = async (event: FormEvent, displayName: string) => {
+  const startSession = async (event: FormEvent, displayName: string, youtubeURL: string) => {
     event.preventDefault();
-    const newSocket = await createConnection(displayName);
+    const youtubeID = extractVideoID(youtubeURL);
+    const newSocket = await createConnection(displayName, undefined, youtubeID);
 
     updateHostSocketBuffer(newSocket);
 
     props.history.push({
       pathname: `/room/${newSocket.id}`,
-      state: { hostId: newSocket.id, displayName },
+      state: { hostId: newSocket.id, displayName, youtubeID },
+      socket: newSocket
     });
   };
 
@@ -35,11 +39,15 @@ const Landing = (props: RouteComponentProps & any) => {
       case 'createDisplayName':
         setCreateDisplayName(element.value);
         break;
+      case 'setYoutubeLink':
+        setYoutubeLink(element.value);
+        break;
       case 'joinRoomId':
         setJoinRoomId(element.value);
         break;
       default:
         setJoinDisplayName(element.value);
+        break;
     }
   };
 
@@ -60,7 +68,7 @@ const Landing = (props: RouteComponentProps & any) => {
         <hr className="mb-5"></hr>
         <div className="card mb-5">
           <div className="card-body">
-            <form onSubmit={(event) => startSession(event, createDisplayName)}>
+            <form onSubmit={(event) => startSession(event, createDisplayName, youtubeLink)}>
               <h3 className="mb-3">Create a new room</h3>
               <div className="form-group">
                 <label htmlFor="createDisplayName">Display Name</label>
@@ -69,6 +77,15 @@ const Landing = (props: RouteComponentProps & any) => {
                   className="form-control mb-3"
                   id="createDisplayName"
                   onChange={handleInputChange}
+                  required
+                />
+                <label htmlFor="setYoutubeLink">Youtube Link</label>
+                <input
+                  type="text"
+                  className="form-control mb-3"
+                  id="setYoutubeLink"
+                  onChange={handleInputChange}
+                  required
                 />
                 <button type="submit" className="btn btn-warning">
                   Start session

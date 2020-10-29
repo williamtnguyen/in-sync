@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Route } from 'react-router-dom';
 
 import Landing from './components/landing';
 import Room from './components/room';
+import { VideoContextProvider } from './contexts/videoContext';
+import { ClientContextProvider } from './contexts/clientContext';
 
 interface SocketContextProps {
   hostSocket: any;
@@ -21,10 +23,14 @@ const App = () => {
 
   return (
     <Router>
-      <SocketContext.Provider value={socketContext}>
-        <Route exact path="/room/:id" component={Room} />
-        <Route exact path="/" component={Landing} />
-      </SocketContext.Provider>
+      <ClientContextProvider>
+        <VideoContextProvider>
+          <SocketContext.Provider value={socketContext}>
+            <Route exact path="/room/:id" component={Room} />
+            <Route exact path="/" component={Landing} />
+          </SocketContext.Provider>
+        </VideoContextProvider>
+      </ClientContextProvider>
     </Router>
   );
 };
