@@ -17,6 +17,6 @@ export const createUserMessage = (
     type: 'clientMessage',
     client,
     clientId,
-    message
+    message,
   };
 };

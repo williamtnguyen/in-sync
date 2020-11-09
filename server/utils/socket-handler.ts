@@ -59,12 +59,12 @@ const socketHandler = (io: WebSocketServer) => {
       const client = Rooms.getClient(socket.id);
       console.log('socket-handler newMessage');
       if (client) {
-        console.log(message);
         socket.broadcast.to(
           Rooms.getClientRoomId(client.id)).emit(
             'notifyClient',
             createUserMessage(client.name, client.id, message)
           );
+        console.log('new message received', message); // visible
       }
     });
 

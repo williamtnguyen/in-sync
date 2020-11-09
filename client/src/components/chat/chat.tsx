@@ -58,7 +58,11 @@ function Chat(props: props) {
                     onChange={onMessageChange}
                     required
                 />
-                <button type='submit'>Send</button>
+                <button type='submit' style={{
+                    minWidth: '0',
+                    padding: '0 20px',
+                    backgroundColor: 'palegreen'
+                }}>Send</button>
             </form>
         </div>
     );
