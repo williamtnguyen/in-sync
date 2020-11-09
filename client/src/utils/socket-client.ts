@@ -37,8 +37,8 @@ export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispat
   const { clientDispatch, videoDispatch } = dispatch;
 
   // Create notifications or do actions based on data passed from socket-handler
-  socket.on('notifyClient', (data: any) => {      
-    switch(data.notification) {
+  socket.on('notifyClient', (data: any) => {
+    switch (data.notification) {
 
       // Sets video for the new client
       case VideoStates.CHANGE_VIDEO:
@@ -51,7 +51,7 @@ export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispat
       case 'updateVideoState':
         const notificationDetails = data.details;
 
-        switch(notificationDetails.type) {
+        switch (notificationDetails.type) {
           case VideoStates.PLAY_VIDEO:
             console.log('PLAY_VIDEO received');
             videoDispatch({
@@ -67,6 +67,14 @@ export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispat
             });
             break;
         }
+        break;
+
+      case 'newMessage':
+        console.log('case newMessage triggered');
+        clientDispatch({
+          type: ClientStates.UPDATE_CHAT_MESSAGES,
+          data
+        });
         break;
 
       default:

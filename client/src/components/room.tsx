@@ -13,6 +13,7 @@ import { ClientContext } from '../contexts/clientContext';
 import { VideoContext } from '../contexts/videoContext';
 import { ClientStates, VideoStates } from '../utils/enums';
 import { roomSocketEvents } from '../utils/socket-client';
+import Chat from './chat/chat'
 
 type LocationState = {
   hostId: string;
@@ -39,13 +40,13 @@ const Room = ({ location, match }: RoomProps & any) => {
   const [displayNameInput, setDisplayNameInput] = useState('');
   const [displayName, setDisplayName] = useState(
     location.state ? location.state.displayName : ''
-    );
+  );
   const { hostSocket } = useContext(SocketContext);
   const [socket, setSocket] = useState(hostSocket);
   const { clientDispatch, clientData } = useContext(ClientContext);
   const { videoDispatch } = useContext(VideoContext);
   const dispatches = {
-    clientDispatch, 
+    clientDispatch,
     videoDispatch
   };
 
@@ -137,32 +138,35 @@ const Room = ({ location, match }: RoomProps & any) => {
           </div>
         </div>
       ) : (
-        <div className="text-center">
-          {' '}
-          <Video
-            youtubeID={clientData.youtubeID}
-            socket={socket}
-          />
-          <h1 className="mb-4">hey, {displayName}</h1>
-          <h5 className="mb-4">Currently connected clients:</h5>
-          <table className="table">
-            <thead>
-              <tr>
-                <th scope="col">clientID</th>
-                <th scope="col">First</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clients.map((client: Client, index) => (
-                <tr key={index}>
-                  <td>{client.id}</td>
-                  <td>{client.name}</td>
+          <div className="text-center">
+            {' '}
+            <Video
+              youtubeID={clientData.youtubeID}
+              socket={socket}
+            />
+            <h1 className="mb-4">hey, {displayName}</h1>
+            <h5 className="mb-4">Currently connected clients:</h5>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th scope="col">clientID</th>
+                  <th scope="col">First</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {clients.map((client: Client, index) => (
+                  <tr key={index}>
+                    <td>{client.id}</td>
+                    <td>{client.name}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div>
+              <Chat socket={socket} />
+            </div>
+          </div>
+        )}
     </div>
   );
 };
