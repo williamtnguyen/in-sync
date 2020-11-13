@@ -29,14 +29,15 @@ function Video({ youtubeID, socket }: videoProps) {
     const video = getVideo();
     if (!video) return;
     video.pauseVideo();
-    if (videoData.changeVideo) {      
+    if (videoData.changeVideo) {     
+      videoDispatch({ type: VideoStates.SEEK_VIDEO, seek: false }); 
       videoDispatch({ type: VideoStates.CHANGE_VIDEO, changeVideo: false });
     } 
   }
 
   function emitState(type: VideoStates, payload = {}, delay = 0) {
     setTimeout(() => {
-      if (socket) {
+      if (socket && !videoData.seek) {
         socket.emit('videoStateChange', { type, payload });
       }
     }, 100 + delay);
@@ -53,6 +54,7 @@ function Video({ youtubeID, socket }: videoProps) {
     switch(data) {
       case 1:
         console.log('case 1 - Play Video');
+        videoDispatch({ type: VideoStates.SEEK_VIDEO, seek: false });
         video.playVideo();
         emitState(
           VideoStates.PLAY_VIDEO, 
@@ -64,6 +66,12 @@ function Video({ youtubeID, socket }: videoProps) {
       case 2:
         console.log('case 2 - Pause Video');
         emitState(VideoStates.PAUSE_VIDEO);
+        videoDispatch({ type: VideoStates.SEEK_VIDEO, seek: false });
+        break;
+
+      case 5:
+        console.log('case 5 - Cue a video');
+        videoDispatch({ type: VideoStates.SEEK_VIDEO, seek: false });
         break;
 
       default:

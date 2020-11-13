@@ -3,7 +3,7 @@ export enum VideoStates {
   PAUSE_VIDEO = 'PAUSE_VIDEO',
   CHANGE_VIDEO = 'CHANGE_VIDEO',
   RESET_PAUSE_PLAY = 'RESET_PAUSE_PLAY',
-  SET_TRANSITION = 'SET_TRANSITION'
+  SEEK_VIDEO = 'SEEK_VIDEO'
 }
 
 export enum ClientStates {

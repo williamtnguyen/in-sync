@@ -4,7 +4,8 @@ import { videoReducer } from '../reducers/videoReducer';
 interface IinitialState {
   playTime: any,
   pauseTime: any,
-  changeVideo: boolean
+  changeVideo: boolean,
+  seek: boolean
 }
 
 interface IvideoContext {
@@ -20,7 +21,8 @@ export const VideoContextProvider = (props: any) => {
   const initialState = {
     playTime: null,
     pauseTime: null,
-    changeVideo: false 
+    changeVideo: false,
+    seek: false
   } 
 
   const [videoData, videoDispatch] = useReducer(videoReducer, initialState);

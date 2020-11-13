@@ -50,6 +50,10 @@ export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispat
 
       case 'updateVideoState':
         const notificationDetails = data.details;
+        videoDispatch({ 
+          type: VideoStates.SEEK_VIDEO, 
+          seek: true 
+        }); 
 
         switch(notificationDetails.type) {
           case VideoStates.PLAY_VIDEO:
@@ -59,6 +63,7 @@ export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispat
               currTime: notificationDetails.currTime
             });
             break;
+            
           case VideoStates.PAUSE_VIDEO:
             console.log('PAUSE_VIDEO received');
             videoDispatch({
