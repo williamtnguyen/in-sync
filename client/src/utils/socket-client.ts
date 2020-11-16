@@ -71,7 +71,7 @@ export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispat
 
       // current issue: case 'newMessage' never invoked
       // nothing happens even when commented out  
-      case 'newMessage':
+      case 'clientMessage':
         console.log('case newMessage triggered');
         clientDispatch({
           type: ClientStates.UPDATE_CHAT_MESSAGES,

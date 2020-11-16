@@ -139,7 +139,41 @@ const Room = ({ location, match }: RoomProps & any) => {
         </div>
       ) : (
           <div className="text-center">
-            {' '}
+            <div className="row">
+              <div className="col-sm-8">
+                <div className="col-sm-12">
+                  {' '}
+                  <Video
+                    youtubeID={clientData.youtubeID}
+                    socket={socket}
+                  />
+                  <h1 className="mb-4">hey, {displayName}</h1>
+                  <h5 className="mb-4">Currently connected clients:</h5>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">clientID</th>
+                        <th scope="col">First</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clients.map((client: Client, index) => (
+                        <tr key={index}>
+                          <td>{client.id}</td>
+                          <td>{client.name}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div className="col-sm-4">
+                <div className="col-sm-12">
+                  <Chat socket={socket} />
+                </div>
+              </div>
+            </div>
+            {/* {' '}
             <Video
               youtubeID={clientData.youtubeID}
               socket={socket}
@@ -161,10 +195,10 @@ const Room = ({ location, match }: RoomProps & any) => {
                   </tr>
                 ))}
               </tbody>
-            </table>
-            <div>
+            </table> */}
+            {/* <div>
               <Chat socket={socket} />
-            </div>
+            </div> */}
           </div>
         )}
     </div>

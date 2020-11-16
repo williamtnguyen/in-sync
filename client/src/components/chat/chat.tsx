@@ -35,7 +35,7 @@ function Chat(props: props) {
             backgroundColor: '#fff',
             display: 'flex',
             flexDirection: 'column',
-            height: '456px',
+            height: '600px',
             marginTop: '5px',
             borderRadius: '5px',
             border: '1px solid #ddd',
@@ -43,7 +43,18 @@ function Chat(props: props) {
             padding: '10px',
             boxSizing: 'border-box'
         }}>
-            <Participants users={clientData.clientList} />
+            {/* Commented out, clientList doesn't work rn
+                and we already display the participant list 
+                below the video 
+            */}
+            {/* <Participants users={clientData.clientList} /> */}
+            <strong>Chatroom</strong>
+            <div style={{
+                height: '1px',
+                backgroundColor: '#eee',
+                margin: '12px 0',
+            }}>
+            </div>
             <Messages messages={clientData.messages} />
             <form action=""
                 onSubmit={onSend}
@@ -57,12 +68,16 @@ function Chat(props: props) {
                     value={message}
                     onChange={onMessageChange}
                     required
+                    style={{
+                        width: '100%'
+                    }}
                 />
-                <button type='submit' style={{
-                    minWidth: '0',
-                    padding: '0 20px',
-                    backgroundColor: 'palegreen'
-                }}>Send</button>
+                <button type='submit'
+                    className='btn btn-primary'
+                    style={{
+                        marginLeft: '10px'
+                    }}
+                >Send</button>
             </form>
         </div>
     );

@@ -9,14 +9,14 @@ interface propsMessages {
 
 interface propsMessage {
     children: string,
-    user: [],
+    user: string,
     key: string,
 }
 
 interface message {
-    from: [],
-    id: string,
-    text: string
+    client: string,
+    clientId: string,
+    message: string
 }
 
 function Messages(props: propsMessages) {
@@ -61,8 +61,8 @@ function Messages(props: propsMessages) {
             }}>
             { console.log(messages)}
             {messages.map((message: message) => (
-                <Message user={message.from} key={message.id}>
-                    {message.text}
+                <Message user={message.client} key={message.clientId}>
+                    {message.message}
                 </Message>
             ))}
             <div className='temp' ref={messageEnd}></div>
@@ -76,8 +76,8 @@ const Message = (props: propsMessage) => {
         <div
             style={{
                 display: 'flex',
-                flexDirection: 'column',
-                fontSize: '0.9em',
+                flexDirection: 'row',
+                fontSize: '1.2em',
                 marginBottom: '10px',
                 boxSizing: 'border-box'
                 // if admin, text-align: center, color: grey
@@ -88,10 +88,10 @@ const Message = (props: propsMessage) => {
                 marginBottom: '3px',
                 marginLeft: '8px'
             }}>
-                {props.user}
+                {props.user}:
             </div>
             <div style={{
-                padding: '8px 10px',
+                padding: '0px 10px',
                 fontWeight: 'normal',
                 fontSize: '0.9em',
                 backgroundColor: 'transparent', // or #eee if admin
