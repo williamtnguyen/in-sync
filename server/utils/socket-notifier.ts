@@ -14,7 +14,7 @@ export const createUserMessage = (
   message: string
 ): Object => {
   return {
-    type: 'clientMessage',
+    notification: 'clientMessage',
     client,
     clientId,
     message,

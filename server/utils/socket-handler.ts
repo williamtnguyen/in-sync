@@ -1,4 +1,3 @@
-import { REPL_MODE_SLOPPY } from 'repl';
 import { Server as WebSocketServer, Socket } from 'socket.io';
 import Rooms from './Rooms';
 import { createClientNotifier, createUserMessage } from './socket-notifier';
@@ -59,7 +58,7 @@ const socketHandler = (io: WebSocketServer) => {
       const client = Rooms.getClient(socket.id);
       console.log('socket-handler newMessage');
       if (client) {
-        socket.broadcast.to(
+        io.to(
           Rooms.getClientRoomId(client.id)).emit(
             'notifyClient',
             createUserMessage(client.name, client.id, message)
