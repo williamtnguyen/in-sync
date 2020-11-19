@@ -37,8 +37,8 @@ export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispat
   const { clientDispatch, videoDispatch } = dispatch;
 
   // Create notifications or do actions based on data passed from socket-handler
-  socket.on('notifyClient', (data: any) => {      
-    switch(data.notification) {
+  socket.on('notifyClient', (data: any) => {
+    switch (data.notification) {
 
       // Sets video for the new client
       case VideoStates.CHANGE_VIDEO:
@@ -55,7 +55,7 @@ export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispat
           seek: true 
         }); 
 
-        switch(notificationDetails.type) {
+        switch (notificationDetails.type) {
           case VideoStates.PLAY_VIDEO:
             console.log('PLAY_VIDEO received');
             videoDispatch({
@@ -72,6 +72,16 @@ export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispat
             });
             break;
         }
+        break;
+
+      // current issue: case 'newMessage' never invoked
+      // nothing happens even when commented out  
+      case 'clientMessage':
+        console.log('case newMessage triggered');
+        clientDispatch({
+          type: ClientStates.UPDATE_CHAT_MESSAGES,
+          data
+        });
         break;
 
       default:

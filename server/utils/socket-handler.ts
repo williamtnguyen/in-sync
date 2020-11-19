@@ -1,6 +1,6 @@
 import { Server as WebSocketServer, Socket } from 'socket.io';
 import Rooms from './Rooms';
-import { createClientNotifier } from './socket-notifier';
+import { createClientNotifier, createUserMessage } from './socket-notifier';
 
 const socketHandler = (io: WebSocketServer) => {
   // Client connection event
@@ -51,8 +51,22 @@ const socketHandler = (io: WebSocketServer) => {
               socketId: socket.id
             }
           })
-        );   
-    }); 
+        );
+    });
+
+    socket.on('newMessage', (message) => {
+      const client = Rooms.getClient(socket.id);
+      console.log('socket-handler newMessage');
+      if (client) {
+        io.to(
+          Rooms.getClientRoomId(client.id)).emit(
+            'notifyClient',
+            createUserMessage(client.name, client.id, message)
+          );
+        console.log('new message received', message); // visible
+      }
+    });
+
   });
 };
 
