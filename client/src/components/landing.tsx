@@ -14,6 +14,7 @@ const Landing = (props: RouteComponentProps & any) => {
   const startSession = async (event: FormEvent, displayName: string, youtubeURL: string) => {
     event.preventDefault();
     const youtubeID = extractVideoID(youtubeURL);
+    console.log('Start Session', {youtubeID});
     const newSocket = await createConnection(displayName, undefined, youtubeID);
 
     updateHostSocketBuffer(newSocket);
@@ -41,6 +42,7 @@ const Landing = (props: RouteComponentProps & any) => {
         break;
       case 'setYoutubeLink':
         setYoutubeLink(element.value);
+        console.log('Start Session', {youtubeLink});
         break;
       case 'joinRoomId':
         setJoinRoomId(element.value);
