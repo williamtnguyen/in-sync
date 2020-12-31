@@ -11,8 +11,9 @@ import { SocketContext } from '../App';
 import Video from './Video';
 import { ClientContext } from '../contexts/clientContext';
 import { VideoContext } from '../contexts/videoContext';
-import { ClientStates } from '../utils/enums';
-import Chat from './chat/Chat';
+import { ClientStates, VideoStates } from '../utils/enums';
+import Chat from './chat/Chat'
+import VideoQueue from './videoQueue'
 
 type LocationState = {
   hostId: string;
@@ -128,6 +129,7 @@ const Room = ({ location, match }: RoomProps & any) => {
     setDisplayName(displayNameInput);
     setClientDisplayName(displayNameInput);
     setEnterDisplayName(false);
+    
   };
 
   return (
@@ -190,6 +192,13 @@ const Room = ({ location, match }: RoomProps & any) => {
             <div className="col-sm-4">
               <div className="col-sm-12">
                 <Chat socket={socket} />
+              </div>
+              <div className="col-sm-4">
+                <div className="col-sm-12">
+                  <VideoQueue 
+                   socket={socket}
+                  />
+                </div>
               </div>
             </div>
           </div>

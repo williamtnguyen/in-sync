@@ -55,6 +55,7 @@ const Landing = (props: RouteComponentProps & any) => {
         break;
       case 'setYoutubeLink':
         setYoutubeLink(element.value);
+        console.log('Start Session', {youtubeLink});
         break;
       case 'joinRoomId':
         setJoinRoomId(element.value);
