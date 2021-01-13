@@ -6,14 +6,13 @@ import React, {
   FormEvent,
 } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
-import { createConnection } from '../utils/socket-client';
+import { createConnection, roomSocketEvents } from '../utils/socket-client';
 import { SocketContext } from '../App';
-import Video from './video';
+import Video from './Video';
 import { ClientContext } from '../contexts/clientContext';
 import { VideoContext } from '../contexts/videoContext';
-import { ClientStates, VideoStates } from '../utils/enums';
-import { roomSocketEvents } from '../utils/socket-client';
-import Chat from './chat/chat'
+import { ClientStates } from '../utils/enums';
+import Chat from './chat/chat';
 
 type LocationState = {
   hostId: string;
@@ -47,12 +46,16 @@ const Room = ({ location, match }: RoomProps & any) => {
   const { videoDispatch } = useContext(VideoContext);
   const dispatches = {
     clientDispatch,
-    videoDispatch
+    videoDispatch,
   };
+
+  useEffect(() => {
+    connectClient();
+    // eslint-disable-next-line
+  }, []);
 
   // Creates a socket connection to server if client is not room host
   const connectClient = async () => {
-
     if (location.state) {
       const { hostId, youtubeID } = location.state;
 
@@ -63,7 +66,6 @@ const Room = ({ location, match }: RoomProps & any) => {
         updateClientList(newSocket);
         setSocket(newSocket);
         roomSocketEvents(newSocket, dispatches);
-
       }
       // hostId was sent as prop, just subscibe to updateClientList broadcasts
       else {
@@ -80,8 +82,8 @@ const Room = ({ location, match }: RoomProps & any) => {
   };
 
   // Subscribes to updateClientList broadcasts from WebSocketServer
-  const updateClientList = (socket: SocketIOClient.Socket) => {
-    socket.on('updateClientList', (newClientList: Client[]) => {
+  const updateClientList = (connectingSocket: SocketIOClient.Socket) => {
+    connectingSocket.on('updateClientList', (newClientList: Client[]) => {
       setClients(newClientList);
     });
   };
@@ -102,10 +104,6 @@ const Room = ({ location, match }: RoomProps & any) => {
     roomSocketEvents(newSocket, dispatches);
     setEnterDisplayName(false);
   };
-
-  useEffect(() => {
-    connectClient();
-  }, []);
 
   return (
     <div
@@ -138,42 +136,39 @@ const Room = ({ location, match }: RoomProps & any) => {
           </div>
         </div>
       ) : (
-          <div className="text-center">
-            <div className="row">
-              <div className="col-sm-8">
-                <div className="col-sm-12">
-                  {' '}
-                  <Video
-                    youtubeID={clientData.youtubeID}
-                    socket={socket}
-                  />
-                  <h1 className="mb-4">hey, {displayName}</h1>
-                  <h5 className="mb-4">Currently connected clients:</h5>
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th scope="col">clientID</th>
-                        <th scope="col">First</th>
+        <div className="text-center">
+          <div className="row">
+            <div className="col-sm-8">
+              <div className="col-sm-12">
+                {' '}
+                <Video youtubeID={clientData.youtubeID} socket={socket} />
+                <h1 className="mb-4">hey, {displayName}</h1>
+                <h5 className="mb-4">Currently connected clients:</h5>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">clientID</th>
+                      <th scope="col">First</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clients.map((client: Client, index) => (
+                      <tr key={index}>
+                        <td>{client.id}</td>
+                        <td>{client.name}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {clients.map((client: Client, index) => (
-                        <tr key={index}>
-                          <td>{client.id}</td>
-                          <td>{client.name}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="col-sm-4">
-                <div className="col-sm-12">
-                  <Chat socket={socket} />
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-            {/* {' '}
+            <div className="col-sm-4">
+              <div className="col-sm-12">
+                <Chat socket={socket} />
+              </div>
+            </div>
+          </div>
+          {/* {' '}
             <Video
               youtubeID={clientData.youtubeID}
               socket={socket}
@@ -196,11 +191,11 @@ const Room = ({ location, match }: RoomProps & any) => {
                 ))}
               </tbody>
             </table> */}
-            {/* <div>
+          {/* <div>
               <Chat socket={socket} />
             </div> */}
-          </div>
-        )}
+        </div>
+      )}
     </div>
   );
 };

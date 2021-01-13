@@ -2,17 +2,16 @@ import React, { createContext, Dispatch, useReducer } from 'react';
 import { videoReducer } from '../reducers/videoReducer';
 
 interface IinitialState {
-  playTime: any,
-  pauseTime: any,
-  changeVideo: boolean,
-  seek: boolean
+  playTime: any;
+  pauseTime: any;
+  changeVideo: boolean;
+  seek: boolean;
 }
 
 interface IvideoContext {
-  videoData: IinitialState,
-  videoDispatch: Dispatch<any>
+  videoData: IinitialState;
+  videoDispatch: Dispatch<any>;
 }
-
 
 export const VideoContext = createContext<IvideoContext>({} as IvideoContext);
 
@@ -22,8 +21,8 @@ export const VideoContextProvider = (props: any) => {
     playTime: null,
     pauseTime: null,
     changeVideo: false,
-    seek: false
-  } 
+    seek: false,
+  };
 
   const [videoData, videoDispatch] = useReducer(videoReducer, initialState);
 

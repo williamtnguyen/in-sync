@@ -1,6 +1,5 @@
 import { Dispatch } from 'react';
 import io from 'socket.io-client';
-import Video from '../components/video';
 import { ClientStates, VideoStates } from './enums';
 const socketServerDomain = 'http://localhost:5000';
 
@@ -8,18 +7,17 @@ const socketServerDomain = 'http://localhost:5000';
 export const createConnection = (
   displayName: string,
   roomId?: string,
-  youtubeID?: string | false,
+  youtubeID?: string | false
 ): Promise<SocketIOClient.Socket> => {
   return new Promise((resolve) => {
     const socket = io(socketServerDomain);
 
     socket.on('connect', () => {
-      console.log('connect event triggered');
       const clientData = {
         roomId: roomId ? roomId : socket.id,
         clientId: socket.id,
         clientName: displayName,
-        youtubeID
+        youtubeID,
       };
       socket.emit('join', clientData);
       resolve(socket);
@@ -27,60 +25,59 @@ export const createConnection = (
   });
 };
 
-interface dispatchTypes {
-  clientDispatch: Dispatch<any>,
-  videoDispatch: Dispatch<any>
+interface DispatchTypes {
+  clientDispatch: Dispatch<any>;
+  videoDispatch: Dispatch<any>;
 }
 
-export const roomSocketEvents = (socket: SocketIOClient.Socket, dispatch: dispatchTypes) => {
+export const roomSocketEvents = (
+  socket: SocketIOClient.Socket,
+  dispatch: DispatchTypes
+) => {
   if (!socket) return;
   const { clientDispatch, videoDispatch } = dispatch;
 
   // Create notifications or do actions based on data passed from socket-handler
   socket.on('notifyClient', (data: any) => {
     switch (data.notification) {
-
       // Sets video for the new client
       case VideoStates.CHANGE_VIDEO:
         clientDispatch({
           type: ClientStates.UPDATE_YOUTUBE_ID,
-          youtubeID: data.details.youtubeID
+          youtubeID: data.details.youtubeID,
         });
         break;
 
       case 'updateVideoState':
         const notificationDetails = data.details;
-        videoDispatch({ 
-          type: VideoStates.SEEK_VIDEO, 
-          seek: true 
-        }); 
+        videoDispatch({
+          type: VideoStates.SEEK_VIDEO,
+          seek: true,
+        });
 
         switch (notificationDetails.type) {
           case VideoStates.PLAY_VIDEO:
-            console.log('PLAY_VIDEO received');
             videoDispatch({
               type: VideoStates.PLAY_VIDEO,
-              currTime: notificationDetails.currTime
+              currTime: notificationDetails.currTime,
             });
             break;
-            
+
           case VideoStates.PAUSE_VIDEO:
-            console.log('PAUSE_VIDEO received');
             videoDispatch({
               type: VideoStates.PAUSE_VIDEO,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
             break;
         }
         break;
 
       // current issue: case 'newMessage' never invoked
-      // nothing happens even when commented out  
+      // nothing happens even when commented out
       case 'clientMessage':
-        console.log('case newMessage triggered');
         clientDispatch({
           type: ClientStates.UPDATE_CHAT_MESSAGES,
-          data
+          data,
         });
         break;
 

@@ -1,8 +1,8 @@
 import React, { createContext, useState } from 'react';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 
-import Landing from './components/landing';
-import Room from './components/room';
+import Landing from './components/Landing';
+import Room from './components/Room';
 import { VideoContextProvider } from './contexts/videoContext';
 import { ClientContextProvider } from './contexts/clientContext';
 
