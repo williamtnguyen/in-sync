@@ -1,7 +1,7 @@
 export const createClientNotifier = (
   notification: string,
-  details: Object
-): Object => {
+  details: object
+): object => {
   return {
     notification,
     details
@@ -12,7 +12,7 @@ export const createUserMessage = (
   client: string,
   clientId: string,
   message: string
-): Object => {
+): object => {
   return {
     notification: 'clientMessage',
     client,

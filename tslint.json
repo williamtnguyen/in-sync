@@ -8,7 +8,9 @@
   "jsRules": {},
   "rules": {
     "quotemark": [true, "single"],
-    "trailing-comma": [false]
+    "trailing-comma": [false],
+    "object-literal-shorthand": true,
+    "object-shorthand-properties-first": false
   },
   "rulesDirectory": []
 }
