@@ -11,7 +11,11 @@ const Landing = (props: RouteComponentProps & any) => {
   const [youtubeLink, setYoutubeLink] = useState('');
   const { updateHostSocketBuffer } = useContext(SocketContext);
 
-  const startSession = async (event: FormEvent, displayName: string, youtubeURL: string) => {
+  const startSession = async (
+    event: FormEvent,
+    displayName: string,
+    youtubeURL: string
+  ) => {
     event.preventDefault();
     const youtubeID = extractVideoID(youtubeURL);
     const newSocket = await createConnection(displayName, undefined, youtubeID);
@@ -21,7 +25,7 @@ const Landing = (props: RouteComponentProps & any) => {
     props.history.push({
       pathname: `/room/${newSocket.id}`,
       state: { hostId: newSocket.id, displayName, youtubeID },
-      socket: newSocket
+      socket: newSocket,
     });
   };
 
@@ -65,10 +69,14 @@ const Landing = (props: RouteComponentProps & any) => {
     >
       <div>
         <h1>Create a room, or join one</h1>
-        <hr className="mb-5"></hr>
+        <hr className="mb-5" />
         <div className="card mb-5">
           <div className="card-body">
-            <form onSubmit={(event) => startSession(event, createDisplayName, youtubeLink)}>
+            <form
+              onSubmit={(event) =>
+                startSession(event, createDisplayName, youtubeLink)
+              }
+            >
               <h3 className="mb-3">Create a new room</h3>
               <div className="form-group">
                 <label htmlFor="createDisplayName">Display Name</label>

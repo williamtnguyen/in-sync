@@ -23,7 +23,7 @@ class Rooms {
     this.clientMap = {};
   }
 
-  addRoom(roomId: string, youtubeID: string): void {   
+  addRoom(roomId: string, youtubeID: string): void {
     if (!this.roomMap[roomId]) {
       const roomDetails = {
         clients: [],
@@ -40,7 +40,7 @@ class Rooms {
     throw new Error('Room with this ID does not exist');
   }
 
-  addClient(roomId: string, clientId: string, clientName: string): void {    
+  addClient(roomId: string, clientId: string, clientName: string): void {
     if (this.roomMap[roomId]) {
       let createClient:boolean = true;
       this.roomMap[roomId].clients.forEach((client) => {
