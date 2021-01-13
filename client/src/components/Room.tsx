@@ -12,7 +12,7 @@ import Video from './Video';
 import { ClientContext } from '../contexts/clientContext';
 import { VideoContext } from '../contexts/videoContext';
 import { ClientStates } from '../utils/enums';
-import Chat from './chat/chat';
+import Chat from './chat/Chat';
 
 type LocationState = {
   hostId: string;
