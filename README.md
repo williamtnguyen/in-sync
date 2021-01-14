@@ -1,5 +1,7 @@
 # 👨‍💻👩‍💻 in-sync
 
+[![Build Status](https://travis-ci.org/williamtnguyen/in-sync.svg?branch=master)](https://travis-ci.org/williamtnguyen/in-sync)
+
 A streaming application that allows users to watch YouTube videos and listen to Spotify music synchronously.
 
 Built with:

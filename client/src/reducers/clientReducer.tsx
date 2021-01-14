@@ -5,11 +5,10 @@ export const clientReducer = (state: any, action: any) => {
     case ClientStates.UPDATE_YOUTUBE_ID:
       return {
         ...state,
-        youtubeID: action.youtubeID
+        youtubeID: action.youtubeID,
       };
 
     case ClientStates.UPDATE_CHAT_MESSAGES:
-      console.log('update_chat_messages triggered');
       const { client, clientId, message } = action.data;
       return {
         ...state,
@@ -18,9 +17,9 @@ export const clientReducer = (state: any, action: any) => {
           {
             client,
             clientId,
-            message
-          }
-        ]
+            message,
+          },
+        ],
       };
 
     default:

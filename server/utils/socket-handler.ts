@@ -37,9 +37,8 @@ const socketHandler = (io: WebSocketServer) => {
       }
     });
 
-    socket.on('videoStateChange', data => {
+    socket.on('videoStateChange', (data) => {
       const client = Rooms.getClient(socket.id);
-      console.log('notify about ', data.type);
       socket.broadcast.to(
         Rooms.getClientRoomId(client.id)).emit(
           'notifyClient',
@@ -56,14 +55,12 @@ const socketHandler = (io: WebSocketServer) => {
 
     socket.on('newMessage', (message) => {
       const client = Rooms.getClient(socket.id);
-      console.log('socket-handler newMessage');
       if (client) {
         io.to(
           Rooms.getClientRoomId(client.id)).emit(
             'notifyClient',
             createUserMessage(client.name, client.id, message)
           );
-        console.log('new message received', message); // visible
       }
     });
 
