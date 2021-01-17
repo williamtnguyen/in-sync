@@ -20,3 +20,16 @@ export const createUserMessage = (
     message,
   };
 };
+
+export const createPlaylistItem = (
+  client: string,
+  clientID: string,
+  youtubeID: string
+): object => {
+  return {
+    notification: 'updatePlaylist',
+    client,
+    clientID,
+    youtubeID,
+  };
+};
