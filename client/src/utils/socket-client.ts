@@ -84,6 +84,12 @@ export const roomSocketEvents = (
         });
         break;
 
+      case 'updatePlaylist':
+        clientDispatch({
+          type: ClientStates.UPDATE_PLAYLIST,
+          data,
+        });
+
       default:
         break;
     }

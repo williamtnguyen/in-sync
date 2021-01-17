@@ -129,7 +129,7 @@ const Room = ({ location, match }: RoomProps & any) => {
     setDisplayName(displayNameInput);
     setClientDisplayName(displayNameInput);
     setEnterDisplayName(false);
-    
+
   };
 
   return (
@@ -193,12 +193,10 @@ const Room = ({ location, match }: RoomProps & any) => {
               <div className="col-sm-12">
                 <Chat socket={socket} />
               </div>
-              <div className="col-sm-4">
-                <div className="col-sm-12">
-                  <VideoQueue 
-                   socket={socket}
-                  />
-                </div>
+            </div>
+            <div className="col-sm-4">
+              <div className="col-sm-12">
+                <VideoQueue socket={socket}/>
               </div>
             </div>
           </div>

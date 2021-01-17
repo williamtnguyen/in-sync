@@ -1,6 +1,6 @@
 import { Server as WebSocketServer, Socket } from 'socket.io';
 import Rooms from './Rooms';
-import { createClientNotifier, createUserMessage } from './socket-notifier';
+import { createClientNotifier, createPlaylistItem, createUserMessage } from './socket-notifier';
 
 const socketHandler = (io: WebSocketServer) => {
   // Client connection event
@@ -67,6 +67,17 @@ const socketHandler = (io: WebSocketServer) => {
         );
       }
     });
+
+    socket.on('updatePlaylist', (youtubeID) => {
+      console.log('updatePlaylist triggered', {youtubeID});
+      const client = Rooms.getClient(socket.id);
+      socket.broadcast.to(
+        Rooms.getClientRoomId(client.id)).emit(
+          'notifyClient',
+          createPlaylistItem(client.name, client.id, youtubeID)
+        );
+    });
+
   });
 };
 
