@@ -6,6 +6,8 @@ import React, {
   FormEvent,
 } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
+import Tabs from 'react-bootstrap/Tabs';
+import Tab from 'react-bootstrap/Tab';
 import { createConnection, roomSocketEvents } from '../utils/socket-client';
 import { SocketContext } from '../App';
 import Video from './Video';
@@ -166,15 +168,13 @@ const Room = ({ location, match }: RoomProps & any) => {
             </div>
             <div className="col-sm-4">
               <div className="col-sm-12">
-                <Chat socket={socket} />
+                <Tabs defaultActiveKey="home" transition={false} id="noanim-tab-example">
+                    <Tab eventKey="home" title="Up Next"><VideoQueue socket={socket}/></Tab>
+                    <Tab eventKey="profile" title="Chat"><Chat socket={socket} /></Tab>
+                </Tabs>
               </div>
             </div>
-            <div className="col-sm-4" id>
-              <div className="col-sm-12">
-                <VideoQueue socket={socket}/>
-              </div>
-            </div>
-          </div>
+          </div>;
           {/* {' '}
             <Video
               youtubeID={clientData.youtubeID}
@@ -200,10 +200,10 @@ const Room = ({ location, match }: RoomProps & any) => {
             </table> */}
           {/* <div>
               <Chat socket={socket} />
-            </div> */}
-        </div>
+            </div> */};
+        </div > 
       )}
-    </div>
+    </div > 
   );
 };
 

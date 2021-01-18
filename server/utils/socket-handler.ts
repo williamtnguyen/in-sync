@@ -65,6 +65,7 @@ const socketHandler = (io: WebSocketServer) => {
     });
 
     socket.on('updatePlaylist', (youtubeID) => {
+      
       console.log('updatePlaylist triggered', {youtubeID});
       const client = Rooms.getClient(socket.id);
       socket.broadcast.to(
