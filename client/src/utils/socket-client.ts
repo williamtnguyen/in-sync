@@ -85,11 +85,12 @@ export const roomSocketEvents = (
         break;
 
       case 'updatePlaylist':
+        console.log('updatePlaylist data',data);
         clientDispatch({
           type: ClientStates.UPDATE_PLAYLIST,
-          data,
+          youtubeID: data.details.youtubeID,
         });
-
+        
       default:
         break;
     }
