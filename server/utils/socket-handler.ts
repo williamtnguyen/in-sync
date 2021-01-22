@@ -64,15 +64,17 @@ const socketHandler = (io: WebSocketServer) => {
       }
     });
 
-    socket.on('updatePlaylist', (youtubeID) => {
+    socket.on('updatePlaylist', (imgURL, youtubeId) => {
       
-      console.log('updatePlaylist triggered', {youtubeID});
+      console.log('updatePlaylist triggered', {imgURL, youtubeId});
       const client = Rooms.getClient(socket.id);
-      socket.broadcast.to(
-        Rooms.getClientRoomId(client.id)).emit(
-          'notifyClient',
-          createPlaylistItem(client.name, client.id, youtubeID)
-        );
+      if (client){
+        io.to(
+          Rooms.getClientRoomId(client.id)).emit(
+            'notifyClient',
+            createPlaylistItem(client.name, client.id, youtubeId, imgURL)
+          );
+      }
     });
 
   });

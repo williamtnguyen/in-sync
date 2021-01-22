@@ -28,6 +28,7 @@ const Chat = (props: ChatProps) => {
         display: 'flex',
         flexDirection: 'column',
         height: '600px',
+        width: '400px',
         marginTop: '5px',
         borderRadius: '5px',
         border: '1px solid #ddd',
