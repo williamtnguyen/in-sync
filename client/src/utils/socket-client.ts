@@ -88,7 +88,7 @@ export const roomSocketEvents = (
         console.log('updatePlaylist data',data);
         clientDispatch({
           type: ClientStates.UPDATE_PLAYLIST,
-          youtubeID: data.details.youtubeID,
+          data,
         });
         
       default:

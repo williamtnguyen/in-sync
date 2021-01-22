@@ -24,12 +24,14 @@ export const createUserMessage = (
 export const createPlaylistItem = (
   client: string,
   clientID: string,
-  youtubeID: string
+  youtubeID: string,
+  imgURL: string,
 ): object => {
   return {
     notification: 'updatePlaylist',
     client,
     clientID,
     youtubeID,
+    imgURL
   };
 };

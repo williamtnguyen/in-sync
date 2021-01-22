@@ -8,9 +8,18 @@ export const clientReducer = (state: any, action: any) => {
         youtubeID: action.youtubeID,
       };
     case ClientStates.UPDATE_PLAYLIST:
+      const { clientName, clientID, youtubeID, imgURL } = action.data;
       return {
         ...state,
-        youtubeID: action.youtubeID,
+        playlist: [
+          ...state.playlist,
+          {
+            clientName,
+            clientID,
+            youtubeID,
+            imgURL,
+          },
+        ],
       };
 
     case ClientStates.UPDATE_CHAT_MESSAGES:
