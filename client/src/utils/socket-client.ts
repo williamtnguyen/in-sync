@@ -7,9 +7,7 @@ const socketServerDomain = 'http://localhost:5000';
 export const createConnection = (
   displayName: string,
   roomId?: string,
-  oldClientId?: string,
-  newClientId?: string,
-  youtubeID?: string
+  youtubeID?: string | false
 ): Promise<SocketIOClient.Socket> => {
   return new Promise((resolve) => {
     const socket = io(socketServerDomain);
@@ -17,9 +15,7 @@ export const createConnection = (
     socket.on('connect', () => {
       const clientData = {
         roomId: roomId ? roomId : socket.id,
-        oldClientId,
-        // if a clientID is present in sessionStorage, use it again
-        newClientId: newClientId ? newClientId : socket.id,
+        clientId: socket.id,
         clientName: displayName,
         youtubeID,
       };

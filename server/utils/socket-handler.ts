@@ -6,29 +6,23 @@ const socketHandler = (io: WebSocketServer) => {
   // Client connection event
   io.on('connection', (socket: Socket) => {
     // tslint:disable-next-line: no-console
-    console.log(`\nNew socket established: ${socket.id}`);
+    console.log(`New socket established: ${socket.id}`);
 
     // Subscribes client to roomId event emitter & broadcasts this info to other clients in room
     socket.on('join', (clientData) => {
       // tslint:disable-next-line: no-console
       console.log('join broadcast triggered');
-      const { roomId, oldClientId, newClientId, clientName, youtubeID } = clientData;
+      const { roomId, clientId, clientName, youtubeID } = clientData;
       socket.join(roomId);
 
       Rooms.addRoom(roomId, youtubeID);
-      if (oldClientId) Rooms.updateClientId(roomId, oldClientId, newClientId);
-      Rooms.addClient(roomId, newClientId, clientName);
-      Rooms.getRoomClients(roomId).forEach((client) => {
-        // tslint:disable-next-line: no-console
-        console.log(client);
-      });
+      Rooms.addClient(roomId, clientId, clientName);
+      // tslint:disable-next-line: no-console
+      Rooms.getRoomClients(roomId).forEach((client) => { console.log(client); });
 
       socket.broadcast
         .to(roomId)
-        .emit(
-          'notifyClient',
-          createClientNotifier('clientJoin', { roomId, newClientId, clientName })
-        );
+        .emit('notifyClient', createClientNotifier('clientJoin', { roomId, clientId, clientName }));
 
       io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
 
@@ -37,7 +31,7 @@ const socketHandler = (io: WebSocketServer) => {
         socket.emit(
           'notifyClient',
           createClientNotifier('CHANGE_VIDEO', {
-            youtubeID: room.youtubeID,
+            youtubeID: room.youtubeID
           })
         );
       }
@@ -45,28 +39,31 @@ const socketHandler = (io: WebSocketServer) => {
 
     socket.on('videoStateChange', (data) => {
       const client = Rooms.getClient(socket.id);
-      socket.broadcast.to(Rooms.getClientRoomId(client.id)).emit(
-        'notifyClient',
-        createClientNotifier('updateVideoState', {
-          type: data.type,
-          ...data.payload,
-          client: {
-            name: client.name,
-            socketId: socket.id,
-          },
-        })
-      );
+      socket.broadcast.to(
+        Rooms.getClientRoomId(client.id)).emit(
+          'notifyClient',
+          createClientNotifier('updateVideoState', {
+            type: data.type,
+            ...data.payload,
+            client: {
+              name: client.name,
+              socketId: socket.id
+            }
+          })
+        );
     });
 
     socket.on('newMessage', (message) => {
       const client = Rooms.getClient(socket.id);
       if (client) {
-        io.to(Rooms.getClientRoomId(client.id)).emit(
-          'notifyClient',
-          createUserMessage(client.name, client.id, message)
-        );
+        io.to(
+          Rooms.getClientRoomId(client.id)).emit(
+            'notifyClient',
+            createUserMessage(client.name, client.id, message)
+          );
       }
     });
+
   });
 };
 

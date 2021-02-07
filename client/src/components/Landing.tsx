@@ -2,48 +2,37 @@ import React, { useState, useContext, ChangeEvent, FormEvent } from 'react';
 import { createConnection } from '../utils/socket-client';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 import { SocketContext } from '../App';
-import { extractVideoId } from '../utils/helpers';
+import { extractVideoID } from '../utils/helpers';
 
 const Landing = (props: RouteComponentProps & any) => {
   const [createDisplayName, setCreateDisplayName] = useState('');
-  const [youtubeLink, setYoutubeLink] = useState('');
   const [joinRoomId, setJoinRoomId] = useState('');
   const [joinDisplayName, setJoinDisplayName] = useState('');
-
-  const { setClientId, setClientDisplayName, setRoomYoutubeId } = useContext(
-    SocketContext
-  );
+  const [youtubeLink, setYoutubeLink] = useState('');
+  const { updateHostSocketBuffer } = useContext(SocketContext);
 
   const startSession = async (
     event: FormEvent,
     displayName: string,
-    youtubeUrl: string
+    youtubeURL: string
   ) => {
     event.preventDefault();
-    const youtubeId = extractVideoId(youtubeUrl);
-    const newSocket = await createConnection(
-      displayName,
-      undefined,
-      undefined,
-      undefined,
-      youtubeId
-    );
+    const youtubeID = extractVideoID(youtubeURL);
+    const newSocket = await createConnection(displayName, undefined, youtubeID);
 
-    setClientId(newSocket.id);
-    setClientDisplayName(displayName);
-    setRoomYoutubeId(youtubeId);
+    updateHostSocketBuffer(newSocket);
 
     props.history.push({
       pathname: `/room/${newSocket.id}`,
-      socket: newSocket, // Send socket object as a prop to prevent redundant connection creation
+      state: { hostId: newSocket.id, displayName, youtubeID },
+      socket: newSocket,
     });
   };
 
   const joinSession = (roomId: string, displayName: string) => {
-    setClientDisplayName(displayName);
-
     props.history.push({
       pathname: `/room/${roomId}`,
+      state: { displayName },
     });
   };
 
