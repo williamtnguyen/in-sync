@@ -53,6 +53,20 @@ class Rooms {
     }
   }
 
+  updateClientId(roomId: string, oldClientId: string, newClientId: string) {
+    if (this.roomMap[roomId]) {
+      const oldClient = this.roomMap[roomId].clients.find(
+        (client: Client) => client.id === oldClientId);
+      if (oldClient) oldClient.id = newClientId;
+      else throw new Error('Old client can\'t be found');
+
+      delete this.clientMap[oldClientId];
+      this.clientMap[newClientId] = roomId;
+    } else {
+      throw new Error('Room with this ID does not exist');
+    }
+  }
+
   getClientRoomId(clientId: string): string {
     if (this.clientMap[clientId]) {
       return this.clientMap[clientId];

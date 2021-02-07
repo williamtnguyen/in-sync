@@ -6,17 +6,18 @@ const socketHandler = (io: WebSocketServer) => {
   // Client connection event
   io.on('connection', (socket: Socket) => {
     // tslint:disable-next-line: no-console
-    console.log(`New socket established: ${socket.id}`);
+    console.log(`\nNew socket established: ${socket.id}`);
 
     // Subscribes client to roomId event emitter & broadcasts this info to other clients in room
     socket.on('join', (clientData) => {
       // tslint:disable-next-line: no-console
       console.log('join broadcast triggered');
-      const { roomId, clientId, clientName, youtubeID } = clientData;
+      const { roomId, oldClientId, newClientId, clientName, youtubeID } = clientData;
       socket.join(roomId);
 
       Rooms.addRoom(roomId, youtubeID);
-      Rooms.addClient(roomId, clientId, clientName);
+      if (oldClientId) Rooms.updateClientId(roomId, oldClientId, newClientId);
+      Rooms.addClient(roomId, newClientId, clientName);
       Rooms.getRoomClients(roomId).forEach((client) => {
         // tslint:disable-next-line: no-console
         console.log(client);
@@ -26,7 +27,7 @@ const socketHandler = (io: WebSocketServer) => {
         .to(roomId)
         .emit(
           'notifyClient',
-          createClientNotifier('clientJoin', { roomId, clientId, clientName })
+          createClientNotifier('clientJoin', { roomId, newClientId, clientName })
         );
 
       io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));

@@ -63,7 +63,7 @@ const Room = ({ location, match }: RoomProps & any) => {
   useEffect(() => {
     connectClient();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, clientDisplayName, roomYoutubeId]);
+  }, [clientDisplayName, roomYoutubeId]);
 
   const connectClient = async () => {
     // Room host with socket from Landing page
@@ -83,8 +83,10 @@ const Room = ({ location, match }: RoomProps & any) => {
         clientDisplayName,
         roomId,
         clientId,
+        undefined,
         undefined
       );
+      setClientId(socketConnection.id);
       updateClientList(socketConnection);
       setSocket(socketConnection);
       roomSocketEvents(socketConnection, dispatches);
@@ -95,6 +97,7 @@ const Room = ({ location, match }: RoomProps & any) => {
       const socketConnection = await createConnection(
         clientDisplayName,
         roomId,
+        undefined,
         undefined,
         undefined
       );
