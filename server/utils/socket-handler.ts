@@ -17,12 +17,17 @@ const socketHandler = (io: WebSocketServer) => {
 
       Rooms.addRoom(roomId, youtubeID);
       Rooms.addClient(roomId, clientId, clientName);
-      // tslint:disable-next-line: no-console
-      Rooms.getRoomClients(roomId).forEach((client) => { console.log(client); });
+      Rooms.getRoomClients(roomId).forEach((client) => {
+        // tslint:disable-next-line: no-console
+        console.log(client);
+      });
 
       socket.broadcast
         .to(roomId)
-        .emit('notifyClient', createClientNotifier('clientJoin', { roomId, clientId, clientName }));
+        .emit(
+          'notifyClient',
+          createClientNotifier('clientJoin', { roomId, clientId, clientName })
+        );
 
       io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
 
@@ -31,7 +36,7 @@ const socketHandler = (io: WebSocketServer) => {
         socket.emit(
           'notifyClient',
           createClientNotifier('CHANGE_VIDEO', {
-            youtubeID: room.youtubeID
+            youtubeID: room.youtubeID,
           })
         );
       }
@@ -39,31 +44,28 @@ const socketHandler = (io: WebSocketServer) => {
 
     socket.on('videoStateChange', (data) => {
       const client = Rooms.getClient(socket.id);
-      socket.broadcast.to(
-        Rooms.getClientRoomId(client.id)).emit(
-          'notifyClient',
-          createClientNotifier('updateVideoState', {
-            type: data.type,
-            ...data.payload,
-            client: {
-              name: client.name,
-              socketId: socket.id
-            }
-          })
-        );
+      socket.broadcast.to(Rooms.getClientRoomId(client.id)).emit(
+        'notifyClient',
+        createClientNotifier('updateVideoState', {
+          type: data.type,
+          ...data.payload,
+          client: {
+            name: client.name,
+            socketId: socket.id,
+          },
+        })
+      );
     });
 
     socket.on('newMessage', (message) => {
       const client = Rooms.getClient(socket.id);
       if (client) {
-        io.to(
-          Rooms.getClientRoomId(client.id)).emit(
-            'notifyClient',
-            createUserMessage(client.name, client.id, message)
-          );
+        io.to(Rooms.getClientRoomId(client.id)).emit(
+          'notifyClient',
+          createUserMessage(client.name, client.id, message)
+        );
       }
     });
-
   });
 };
 

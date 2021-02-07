@@ -8,7 +8,7 @@ export interface ClientMap {
 }
 
 export interface RoomMap {
-  [roomId: string]: { clients: Client[], youtubeID: string };
+  [roomId: string]: { clients: Client[]; youtubeID: string };
 }
 
 /**
@@ -27,7 +27,7 @@ class Rooms {
     if (!this.roomMap[roomId]) {
       const roomDetails = {
         clients: [],
-        youtubeID
+        youtubeID,
       };
       this.roomMap[roomId] = roomDetails;
     }
@@ -41,16 +41,13 @@ class Rooms {
   }
 
   addClient(roomId: string, clientId: string, clientName: string): void {
+    if (this.clientMap[clientId]) {
+      return;
+    }
     if (this.roomMap[roomId]) {
-      let createClient:boolean = true;
-      this.roomMap[roomId].clients.forEach((client) => {
-        client.name === clientName ? createClient = false : createClient = true;
-      });
-      if (createClient) {
-        const newClient: Client = { id: clientId, name: clientName };
-        this.roomMap[roomId].clients.push(newClient);
-        this.clientMap[clientId] = roomId;
-      }
+      const newClient: Client = { id: clientId, name: clientName };
+      this.roomMap[roomId].clients.push(newClient);
+      this.clientMap[clientId] = roomId;
     } else {
       throw new Error('Room with this ID does not exist');
     }
