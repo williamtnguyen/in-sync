@@ -21,12 +21,12 @@ const VideoQueue = (props: props) => {
     const { socket } = props;
     const [youtubeLink, setYoutubeLink] = useState('');
     const [imageURL, setImageURL] = useState('');
-    const { clientData } = useContext(ClientContext);
+    const { clientDispatch, clientData } = useContext(ClientContext);
     const container = createRef<HTMLDivElement>();
     const test = createRef<HTMLDivElement>();
 
     function clearInput() {
-        (document.getElementById('form') as HTMLInputElement).value = ' ';
+        (document.getElementById('input') as HTMLInputElement).value = " ";
     }
 
     const scrollDown = () => {
@@ -41,13 +41,9 @@ const VideoQueue = (props: props) => {
 
         let imgURL = 'http://img.youtube.com/vi/' + youtubeID + '/0.jpg';
         setImageURL(imgURL);
-
-        console.log('URL', imageURL);
-
-        socket.emit('updatePlaylist', imageURL, youtubeID);
-
-        console.log('Data', clientData.playlist);
-
+        socket.emit('updatePlaylist', imgURL, youtubeID);
+        
+        
         clearInput();
     };
 
@@ -120,7 +116,7 @@ const VideoQueue = (props: props) => {
                     </tbody>
                 </thead>
             </table>
-            <form id = 'form' onSubmit= {(event) => onAddVideo(event, youtubeLink)} 
+            <form onSubmit= {(event) => onAddVideo(event, youtubeLink)} 
                 style={{
                     display: 'flex',
                     flexDirection: 'row',
@@ -131,7 +127,7 @@ const VideoQueue = (props: props) => {
                     type="text"
                     placeholder="Youtube Link"
                     value = {youtubeLink}
-                    id = 'form'
+                    id = "input"
                     onChange={onHandleChange}
                     required
                     style={{

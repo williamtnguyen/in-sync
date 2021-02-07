@@ -1,3 +1,6 @@
+import { Playlist } from './Playlist'; 
+
+
 export interface Client {
   id: string;
   name: string;
@@ -8,8 +11,9 @@ export interface ClientMap {
 }
 
 export interface RoomMap {
-  [roomId: string]: { clients: Client[], youtubeID: string };
+  [roomId: string]: { clients: Client[], youtubeID: string, playlist: Playlist };
 }
+
 
 /**
  * Singleton class that aggregates/encapsulates all room information in WebSocketServer
@@ -17,17 +21,20 @@ export interface RoomMap {
 class Rooms {
   private roomMap: RoomMap;
   private clientMap: ClientMap; // maps any socket.id to its respective roomId
+  //private playlist: Playlist;
 
   constructor() {
     this.roomMap = {};
     this.clientMap = {};
+    //this.playlist = new Playlist();
   }
 
   addRoom(roomId: string, youtubeID: string): void {
     if (!this.roomMap[roomId]) {
       const roomDetails = {
         clients: [],
-        youtubeID
+        youtubeID,
+        playlist: new Playlist()
       };
       this.roomMap[roomId] = roomDetails;
     }
@@ -86,6 +93,27 @@ class Rooms {
       this.roomMap[roomID].youtubeID = newYoutubeID;
     }
   }
+
+  updatePlaylist(roomID: string, youtubeID:string): void {
+    if(this.roomMap[roomID]){
+      this.roomMap[roomID].playlist.addVideo(youtubeID);
+    }
+  }
+
+  deleteVideo(roomID: string, youtubeID:string): void {
+    if(this.roomMap[roomID]){
+      this.roomMap[roomID].playlist.deleteVideo(youtubeID);
+    }
+  }
+
+  // playNextVideo(roomID: string): void {
+  //   if(this.roomMap[roomID]){
+  //     var head = this.roomMap[roomID].playlist.getHead();
+
+  //   }
+  // }
+
+
 }
 
 export default new Rooms();
