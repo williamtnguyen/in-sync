@@ -83,7 +83,6 @@ const Room = ({ location, match }: RoomProps & any) => {
         clientDisplayName,
         roomId,
         clientId,
-        undefined,
         undefined
       );
       setClientId(socketConnection.id);
@@ -97,7 +96,6 @@ const Room = ({ location, match }: RoomProps & any) => {
       const socketConnection = await createConnection(
         clientDisplayName,
         roomId,
-        undefined,
         undefined,
         undefined
       );
