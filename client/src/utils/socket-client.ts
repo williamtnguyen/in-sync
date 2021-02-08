@@ -8,7 +8,6 @@ export const createConnection = (
   displayName: string,
   roomId?: string,
   oldClientId?: string,
-  newClientId?: string,
   youtubeID?: string
 ): Promise<SocketIOClient.Socket> => {
   return new Promise((resolve) => {
@@ -19,7 +18,7 @@ export const createConnection = (
         roomId: roomId ? roomId : socket.id,
         oldClientId,
         // if a clientID is present in sessionStorage, use it again
-        newClientId: newClientId ? newClientId : socket.id,
+        newClientId: socket.id,
         clientName: displayName,
         youtubeID,
       };
