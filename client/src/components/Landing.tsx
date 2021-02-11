@@ -2,7 +2,7 @@ import React, { useState, useContext, ChangeEvent, FormEvent } from 'react';
 import { createConnection } from '../utils/socket-client';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 import { SocketContext } from '../App';
-import { extractVideoID } from '../utils/helpers';
+import { extractVideoID, validVideoURL } from '../utils/helpers';
 
 const Landing = (props: RouteComponentProps & any) => {
   const [createDisplayName, setCreateDisplayName] = useState('');
@@ -17,17 +17,21 @@ const Landing = (props: RouteComponentProps & any) => {
     youtubeURL: string
   ) => {
     event.preventDefault();
-    const youtubeID = extractVideoID(youtubeURL);
-    console.log('Start Session', {youtubeID});
-    const newSocket = await createConnection(displayName, undefined, youtubeID);
+    if(validVideoURL(youtubeURL)){
+      const youtubeID = extractVideoID(youtubeURL);
+      console.log('Start Session', {youtubeID});
+      const newSocket = await createConnection(displayName, undefined, youtubeID);
 
-    updateHostSocketBuffer(newSocket);
+      updateHostSocketBuffer(newSocket);
 
-    props.history.push({
-      pathname: `/room/${newSocket.id}`,
-      state: { hostId: newSocket.id, displayName, youtubeID },
-      socket: newSocket,
-    });
+      props.history.push({
+        pathname: `/room/${newSocket.id}`,
+        state: { hostId: newSocket.id, displayName, youtubeID },
+        socket: newSocket,
+      });
+    }else {
+      alert('URL is not valid');
+    }
   };
 
   const joinSession = (roomId: string, displayName: string) => {
