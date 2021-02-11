@@ -8,7 +8,7 @@ export const clientReducer = (state: any, action: any) => {
         youtubeID: action.youtubeID,
       };
     case ClientStates.UPDATE_PLAYLIST:
-      const {youtubeID} = action.data;
+      const { youtubeID } = action.data;
       return {
         ...state,
         playlist: [

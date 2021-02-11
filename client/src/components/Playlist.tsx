@@ -1,132 +1,142 @@
-import React, {useState, FormEvent, ChangeEvent, MouseEvent, useContext, createRef, useEffect} from 'react';
+import React, {
+  useState,
+  FormEvent,
+  ChangeEvent,
+  MouseEvent,
+  useContext,
+  createRef,
+  useEffect
+} from 'react';
 import { extractVideoId, validVideoURL } from '../utils/helpers';
 import { ClientContext } from '../contexts/clientContext';
 import { ClientStates } from '../utils/enums';
 
 type props = {
-    socket: SocketIOClient.Socket
-  };
+  socket: SocketIOClient.Socket
+};
 
 interface Playlist {
-    youtubeID: string;
+  youtubeID: string;
 }
 
-const Playlist = ({socket}: props) => {
-    const [youtubeLink, setYoutubeLink] = useState('');
-    const { clientDispatch, clientData } = useContext(ClientContext);
-    const container = createRef<HTMLDivElement>();
+const Playlist = ({ socket }: props) => {
+  const [youtubeLink, setYoutubeLink] = useState('');
+  const { clientDispatch, clientData } = useContext(ClientContext);
+  const container = createRef<HTMLDivElement>();
 
-    function clearInput() {
-        (document.getElementById('input') as HTMLInputElement).value = ' ';
+  function clearInput() {
+    (document.getElementById('input') as HTMLInputElement).value = ' ';
+  }
+
+  const scrollDown = () => {
+    container.current?.scrollIntoView();
+  };
+
+  const onAddVideo = async (event: FormEvent, youtubeURL: string) => {
+    event.preventDefault();
+    if (validVideoURL(youtubeURL)) {
+      const youtubeID = extractVideoId(youtubeURL);
+      socket.emit('addToPlaylist', youtubeID);
+
+      clearInput();
+    }else {
+      alert('URL is not valid');
     }
+  };
 
-    const scrollDown = () => {
-        container.current?.scrollIntoView();
+  const onHandleChange = (event: ChangeEvent) => {
+    event.preventDefault();
+    const element = event.target as HTMLInputElement;
+    setYoutubeLink(element.value);
+
+    const youtubeID = extractVideoId(element.value);
+  };
+
+  function renderTitle(youtubeID: string) {
+    const url = `http://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${youtubeID}&format=json`;
+    const xhReq = new XMLHttpRequest();
+    xhReq.onreadystatechange = function () {
+      if (this.readyState === this.DONE) {
+        // alert(this.status);
+      }
     };
+    xhReq.open('GET', url, false);
+    xhReq.send(null);
+    const jsonObject = JSON.parse(xhReq.responseText);
 
-    const onAddVideo = async (event: FormEvent, youtubeURL: string) => {
-        event.preventDefault();
-        if (validVideoURL(youtubeURL)) {
-            const youtubeID = extractVideoId(youtubeURL);
-            socket.emit('addToPlaylist', youtubeID);
+    return jsonObject.title;
+  }
 
-            clearInput();
-        }else {
-            alert('URL is not valid');
-        }
-    };
+  function renderImgURL(youtubeID: string) {
+    const imgURL = `http://img.youtube.com/vi/${youtubeID}/0.jpg`;
+    return imgURL;
+  }
 
-    const onHandleChange = (event: ChangeEvent) => {
-        const element = event.target as HTMLInputElement;
-        setYoutubeLink(element.value);
+  function deleteVideo(youtubeID: string, index: number) {
 
-        const youtubeID = extractVideoID(element.value);
-    };
-
-    function renderTitle(youtubeID: string ) {
-        const url = 'http://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${youtubeID}&format=json';
-        const xhReq = new XMLHttpRequest();
-        xhReq.onreadystatechange = function () {
-            if (this.readyState === this.DONE) {
-                alert(this.status);
-            }
-        };
-        xhReq.open('GET', url, false);
-        xhReq.send(null);
-        const jsonObject = JSON.parse(xhReq.responseText);
-
-        return jsonObject.title;
+    if (index > -1) {
+      clientData.playlist.splice(index, 1);
+      socket.emit('deletePlaylistItem', clientData.playlist);
     }
+  }
 
-    function renderImgURL(youtubeID: string) {
-        const imgURL = 'http://img.youtube.com/vi/${youtubeID}/0.jpg';
-        return imgURL;
-    }
+  function onDelete(event: MouseEvent, youtubeID: string) {
+    event.preventDefault();
+    const element = event.target as HTMLInputElement;
+    const index : number = +element.id;
+    deleteVideo(youtubeID, index);
 
-    function deleteVideo(youtubeID: string, index: number) {
+  }
 
-        if (index > -1) {
-            clientData.playlist.splice(index, 1);
-            socket.emit('deletePlaylistItem', clientData.playlist);
-          }
-    }
+  function onPlay(event: MouseEvent, youtubeID: string) {
+    event.preventDefault();
+    socket.emit('changeVideo', youtubeID);
 
-    function onDelete(event: MouseEvent, youtubeID: string) {
-        const element = event.target as HTMLInputElement;
-        const index : number = +element.id;
-        deleteVideo(youtubeID, index);
+    const element = event.target as HTMLInputElement;
+    const index : number = +element.id;
 
-    }
+    deleteVideo(youtubeID, index);
+  }
 
-    function onPlay(event: MouseEvent, youtubeID: string) {
-        socket.emit('changeVideo', youtubeID);
+  useEffect(scrollDown, [socket]);
 
-        const element = event.target as HTMLInputElement;
-        const index : number = +element.id;
-
-        deleteVideo(youtubeID, index);
-    }
-
-    useEffect(scrollDown, [props]);
-
-    return (
+  return (
         <div
             style={{
-            backgroundColor: '#fff',
-            display: 'flex',
-            flexDirection: 'column',
-            height: '600px',
-            width: '360px',
-            marginTop: '5px',
-            borderRadius: '5px',
-            border: '1px solid #ddd',
-            boxShadow: '3px 3px 5px #eee',
-            padding: '10px',
-            boxSizing: 'border-box'
-        }}>
+              backgroundColor: '#fff',
+              display: 'flex',
+              flexDirection: 'column',
+              height: '600px',
+              width: '360px',
+              marginTop: '5px',
+              borderRadius: '5px',
+              border: '1px solid #ddd',
+              boxShadow: '3px 3px 5px #eee',
+              padding: '10px',
+              boxSizing: 'border-box'
+            }}>
             <strong>Playlist</strong>
             <div ref = {container}
                 id = "div"
                 style={{
-                height: '1px',
-                backgroundColor: '#eee',
-                margin: '12px',
-                wordWrap: 'break-word'
-            }}>
-            </div>
+                  height: '1px',
+                  backgroundColor: '#eee',
+                  margin: '12px',
+                  wordWrap: 'break-word'
+                }}/>
             <table className="table">
                 <thead>
                     <tbody>
                         {clientData.playlist.map((item: Playlist, index) => (
-                            <tr>
+                            <tr key={index}>
                                 <td>
                                     <img src={renderImgURL(item.youtubeID)}
                                         alt="" height="110" width = "150"/>
                                 </td>
                                 <div
                                     style={{
-                                        wordWrap: 'break-word',
-                                        fontSize: '12px',
+                                      wordWrap: 'break-word',
+                                      fontSize: '12px',
                                     }}>
                                     <td>
                                     {renderTitle(item.youtubeID)}
@@ -138,8 +148,8 @@ const Playlist = ({socket}: props) => {
                                     className="btn btn-primary"
                                     onClick= {(event) => onPlay(event, item.youtubeID)}
                                     style={{
-                                        marginTop: '3px',
-                                        fontSize: '12px',
+                                      marginTop: '3px',
+                                      fontSize: '12px',
                                     }}
                                 >
                                     Play
@@ -147,11 +157,12 @@ const Playlist = ({socket}: props) => {
                                 <button
                                     type="submit"
                                     className="btn btn-primary"
+                                    id={index.toString()}
                                     onClick= {(event) => onDelete(event, item.youtubeID)}
                                     style={{
-                                        marginTop: '3px',
-                                        marginLeft: '5px',
-                                        fontSize: '12px',
+                                      marginTop: '3px',
+                                      marginLeft: '5px',
+                                      fontSize: '12px',
                                     }}
                                 >
                                     Delete
@@ -163,9 +174,9 @@ const Playlist = ({socket}: props) => {
             </table>
             <form onSubmit = {(event) => onAddVideo(event, youtubeLink)}
                 style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    marginBottom: '20px'
+                  display: 'flex',
+                  flexDirection: 'row',
+                  marginBottom: '20px'
                 }}
             >
                 <input
@@ -176,21 +187,21 @@ const Playlist = ({socket}: props) => {
                     onChange={onHandleChange}
                     required
                     style={{
-                        width: '100%',
-                      }}
+                      width: '100%',
+                    }}
                 />
                 <button
                     type="submit"
                     className="btn btn-primary"
                     style={{
-                        marginLeft: '10px',
+                      marginLeft: '10px',
                     }}
                 >
                     Add
                 </button>
             </form>
         </div>
-    );
+  );
 };
 
 export default Playlist;

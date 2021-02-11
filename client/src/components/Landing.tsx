@@ -61,7 +61,7 @@ const Landing = (props: RouteComponentProps & any) => {
         break;
       case 'setYoutubeLink':
         setYoutubeLink(element.value);
-        console.log('Start Session', {youtubeLink});
+        console.log('Start Session', { youtubeLink }); // tslint:disable-line
         break;
       case 'joinRoomId':
         setJoinRoomId(element.value);

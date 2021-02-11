@@ -10,7 +10,9 @@
     "quotemark": [true, "single"],
     "trailing-comma": [false],
     "object-literal-shorthand": true,
-    "object-shorthand-properties-first": false
+    "object-shorthand-properties-first": false,
+    "no-var-requires": false,
+    "variable-name": false
   },
   "rulesDirectory": []
 }
