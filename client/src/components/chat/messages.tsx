@@ -65,7 +65,7 @@ const Messages = (props: MessagesProps) => {
           {message.message}
         </Message>
       ))}
-    
+
       <div className="temp" ref={messageEnd} />
     </div>
   );

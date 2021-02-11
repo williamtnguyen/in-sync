@@ -85,7 +85,6 @@ export const roomSocketEvents = (
         break;
 
       case 'addToPlaylist':
-        console.log('addToPlaylist data',data);
         clientDispatch({
           type: ClientStates.UPDATE_PLAYLIST,
           data,
@@ -93,20 +92,18 @@ export const roomSocketEvents = (
       break;
 
       case 'deletePlaylistItem':
-        console.log('deletePlaylistItem data',data);
         clientDispatch({
           type: ClientStates.DELETE_VIDEO,
           playlist: data.playlist,
         });
       break;
-      
+
       case 'changeVideo':
-        console.log('change video',data);
         clientDispatch({
           type: ClientStates.CHANGE_VIDEO,
           data,
         });
-        
+
       default:
         break;
     }

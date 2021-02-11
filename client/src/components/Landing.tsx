@@ -21,7 +21,7 @@ const Landing = (props: RouteComponentProps & any) => {
   ) => {
     event.preventDefault();
 
-    if(validVideoURL(youtubeUrl)){
+    if (validVideoURL(youtubeUrl)) {
       const youtubeId = extractVideoId(youtubeUrl);
       const newSocket = await createConnection(
         displayName,

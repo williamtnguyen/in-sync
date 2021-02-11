@@ -226,9 +226,9 @@ const Room = ({ location, match }: RoomProps & any) => {
           {/* <div>
               <Chat socket={socket} />
             </div> */};
-        </div > 
+        </div >
       )}
-    </div > 
+    </div >
   );
 };
 
