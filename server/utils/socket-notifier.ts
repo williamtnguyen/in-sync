@@ -22,16 +22,19 @@ export const createUserMessage = (
 };
 
 export const createPlaylistItem = (
-  client: string,
-  clientID: string,
   youtubeID: string,
-  imgURL: string,
 ): object => {
   return {
-    notification: 'updatePlaylist',
-    client,
-    clientID,
+    notification: 'addToPlaylist',
     youtubeID,
-    imgURL
+  };
+};
+
+export const deletePlaylistItem = (
+  playlist: string[],
+): object => {
+  return {
+    notification: 'deletePlaylistItem',
+    playlist,
   };
 };

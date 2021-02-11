@@ -1,6 +1,6 @@
 import { Server as WebSocketServer, Socket } from 'socket.io';
 import Rooms from './Rooms';
-import { createClientNotifier, createPlaylistItem, createUserMessage } from './socket-notifier';
+import { createClientNotifier, createPlaylistItem, createUserMessage, deletePlaylistItem } from './socket-notifier';
 
 const socketHandler = (io: WebSocketServer) => {
   // Client connection event
@@ -68,9 +68,9 @@ const socketHandler = (io: WebSocketServer) => {
       }
     });
 
-    socket.on('updatePlaylist', (imgURL, youtubeId) => {
+    socket.on('addToPlaylist', (youtubeId) => {
       
-      console.log('updatePlaylist triggered', {imgURL, youtubeId});
+      console.log('addToPlaylist triggered', {youtubeId});
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
       const room = Rooms.getRoom(roomId)
@@ -78,29 +78,38 @@ const socketHandler = (io: WebSocketServer) => {
         io.to(
           Rooms.getClientRoomId(client.id)).emit(
             'notifyClient',
-            createClientNotifier('CHANGE_VIDEO', {
-              playlist : room.playlist
-            })
+            createPlaylistItem(youtubeId)
           );
           Rooms.updatePlaylist(roomId, youtubeId);      
         }
     });
 
-    // socket.on('nextVideo', (youtubeId) => {
-    //   const client = Rooms.getClient(socket.id);
-    //   const roomId = Rooms.getClientRoomId(client.id);
-    //   const room = Rooms.getRoom(roomId);
-    //   io.to(
-    //     Rooms.getClientRoomId(client.id)).emit(
-    //       'notifyClient',
-    //       createClientNotifier('NEXT_VIDEO', {
-    //         playlist : room.playlist
-    //       })
-    //     );
-        
-    //     Rooms.setVideoLink(roomId, youtube)
+    socket.on('deletePlaylistItem', (playlist) => {
+      
+      console.log('deletePlaylistItem', {playlist});
+      const client = Rooms.getClient(socket.id);
+    
+      if (client){
+        io.to(
+          Rooms.getClientRoomId(client.id)).emit(
+            'notifyClient',
+            deletePlaylistItem(playlist)
+          );
+        }
+    });
 
-    // });
+    socket.on('changeVideo', (youtubeId) => {
+      const client = Rooms.getClient(socket.id);
+      const roomId = Rooms.getClientRoomId(client.id);
+      io.to(
+        Rooms.getClientRoomId(client.id)).emit(
+          'notifyClient',
+          createClientNotifier('CHANGE_VIDEO', {
+            youtubeID: youtubeId
+          })
+        );
+        Rooms.changeVideo(roomId, youtubeId);
+    });
 
   });
 };

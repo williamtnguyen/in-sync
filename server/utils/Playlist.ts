@@ -7,12 +7,10 @@ export interface PlaylistMap{
 
 export class Playlist{
     private list: typeof LinkedList;
-  //  private playlistMap: PlaylistMap;
     private map: Map<string, typeof LinkedList.Item>;
 
     constructor() {
         this.list = new LinkedList();
-       // this.playlistMap = {};
         this.map = new Map<string, typeof LinkedList.Item>();
     }
 
@@ -21,24 +19,19 @@ export class Playlist{
         
         this.list.append(node);
         this.map.set(youtubeID, node);
-        //this.playlistMap[youtubeID] = node; 
-        this.getNextVideo();
-        console.log('Adding youtube Id to playlist map', youtubeID);
     }
 
     deleteVideo(youtubeID: string): void{
-       // this.playlistMap[youtubeID].
-       // delete this.playlistMap[youtubeID]; 
-       var node = this.map.get(youtubeID);
+       var node: typeof LinkedList.Item = this.map.get(youtubeID);
        
        node.detach();
        this.map.delete(youtubeID);
-
     }
 
     getNextVideo(): typeof LinkedList.Item {
-        var value =  this.list.head as string;
-        var node = this.map.get(value);
+        //to be used for autoplay
+        var value: typeof LinkedList.Item =  this.list.head;
+        var node: typeof LinkedList.Item = this.map.get(value);
         console.log('value', value);
     }
 }
