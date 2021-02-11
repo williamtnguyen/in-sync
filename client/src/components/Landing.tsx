@@ -2,7 +2,7 @@ import React, { useState, useContext, ChangeEvent, FormEvent } from 'react';
 import { createConnection } from '../utils/socket-client';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 import { SocketContext } from '../App';
-import { extractVideoId } from '../utils/helpers';
+import { extractVideoId, validVideoURL } from '../utils/helpers';
 
 const Landing = (props: RouteComponentProps & any) => {
   const [createDisplayName, setCreateDisplayName] = useState('');
