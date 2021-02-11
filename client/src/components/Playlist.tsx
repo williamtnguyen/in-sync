@@ -1,26 +1,23 @@
 import React, {useState, FormEvent, ChangeEvent, MouseEvent, useContext, createRef, useEffect} from 'react';
-import { extractVideoID, validVideoURL } from '../utils/helpers';
+import { extractVideoId, validVideoURL } from '../utils/helpers';
 import { ClientContext } from '../contexts/clientContext';
 import { ClientStates } from '../utils/enums';
-
 
 type props = {
     socket: SocketIOClient.Socket
   };
 
 interface Playlist {
-    youtubeID: string,
-}  
+    youtubeID: string;
+}
 
-
-const Playlist = (props: props) => {
-    const { socket } = props;
+const Playlist = ({socket}: props) => {
     const [youtubeLink, setYoutubeLink] = useState('');
     const { clientDispatch, clientData } = useContext(ClientContext);
     const container = createRef<HTMLDivElement>();
 
     function clearInput() {
-        (document.getElementById('input') as HTMLInputElement).value = " ";
+        (document.getElementById('input') as HTMLInputElement).value = ' ';
     }
 
     const scrollDown = () => {
@@ -29,12 +26,12 @@ const Playlist = (props: props) => {
 
     const onAddVideo = async (event: FormEvent, youtubeURL: string) => {
         event.preventDefault();
-        if(validVideoURL(youtubeURL)){
-            const youtubeID = extractVideoID(youtubeURL);
-            socket.emit('addToPlaylist',youtubeID);
-            
+        if (validVideoURL(youtubeURL)) {
+            const youtubeID = extractVideoId(youtubeURL);
+            socket.emit('addToPlaylist', youtubeID);
+
             clearInput();
-        }else{
+        }else {
             alert('URL is not valid');
         }
     };
@@ -46,47 +43,47 @@ const Playlist = (props: props) => {
         const youtubeID = extractVideoID(element.value);
     };
 
-    function renderTitle(youtubeID: string ){
-        var url = 'http://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=' + youtubeID + '&format=json';
-        var xhReq = new XMLHttpRequest();
-        xhReq.onreadystatechange = function() {
+    function renderTitle(youtubeID: string ) {
+        const url = 'http://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${youtubeID}&format=json';
+        const xhReq = new XMLHttpRequest();
+        xhReq.onreadystatechange = function () {
             if (this.readyState === this.DONE) {
-                console.log(this.status) // do something; the request has completed
+                alert(this.status);
             }
-        }
-        xhReq.open("GET", url, false);
+        };
+        xhReq.open('GET', url, false);
         xhReq.send(null);
-        var jsonObject = JSON.parse(xhReq.responseText);
+        const jsonObject = JSON.parse(xhReq.responseText);
 
         return jsonObject.title;
     }
 
-    function renderImgURL(youtubeID: string){
-        let imgURL = 'http://img.youtube.com/vi/' + youtubeID + '/0.jpg';
+    function renderImgURL(youtubeID: string) {
+        const imgURL = 'http://img.youtube.com/vi/${youtubeID}/0.jpg';
         return imgURL;
     }
-    
-    function deleteVideo(youtubeID: string, index: number){
-       
+
+    function deleteVideo(youtubeID: string, index: number) {
+
         if (index > -1) {
             clientData.playlist.splice(index, 1);
             socket.emit('deletePlaylistItem', clientData.playlist);
           }
     }
 
-    function onDelete(event: MouseEvent, youtubeID: string){
+    function onDelete(event: MouseEvent, youtubeID: string) {
         const element = event.target as HTMLInputElement;
-        var index : number = +element.id;
+        const index : number = +element.id;
         deleteVideo(youtubeID, index);
-        
+
     }
 
-    function onPlay(event: MouseEvent, youtubeID: string){
+    function onPlay(event: MouseEvent, youtubeID: string) {
         socket.emit('changeVideo', youtubeID);
-       
+
         const element = event.target as HTMLInputElement;
-        var index : number = +element.id;
-        
+        const index : number = +element.id;
+
         deleteVideo(youtubeID, index);
     }
 
@@ -108,7 +105,7 @@ const Playlist = (props: props) => {
             boxSizing: 'border-box'
         }}>
             <strong>Playlist</strong>
-            <div ref = {container} 
+            <div ref = {container}
                 id = "div"
                 style={{
                 height: '1px',
@@ -123,7 +120,8 @@ const Playlist = (props: props) => {
                         {clientData.playlist.map((item: Playlist, index) => (
                             <tr>
                                 <td>
-                                    <img src= {renderImgURL(item.youtubeID)} alt="" height='110' width = '150'/>
+                                    <img src={renderImgURL(item.youtubeID)}
+                                        alt="" height="110" width = "150"/>
                                 </td>
                                 <div
                                     style={{
@@ -138,7 +136,7 @@ const Playlist = (props: props) => {
                                     id = {index.toString()}
                                     type="submit"
                                     className="btn btn-primary"
-                                    onClick= {(event) => onPlay(event, item.youtubeID)} 
+                                    onClick= {(event) => onPlay(event, item.youtubeID)}
                                     style={{
                                         marginTop: '3px',
                                         fontSize: '12px',
@@ -149,7 +147,7 @@ const Playlist = (props: props) => {
                                 <button
                                     type="submit"
                                     className="btn btn-primary"
-                                    onClick= {(event) => onDelete(event, item.youtubeID)} 
+                                    onClick= {(event) => onDelete(event, item.youtubeID)}
                                     style={{
                                         marginTop: '3px',
                                         marginLeft: '5px',
@@ -163,7 +161,7 @@ const Playlist = (props: props) => {
                     </tbody>
                 </thead>
             </table>
-            <form onSubmit = {(event) => onAddVideo(event, youtubeLink)} 
+            <form onSubmit = {(event) => onAddVideo(event, youtubeLink)}
                 style={{
                     display: 'flex',
                     flexDirection: 'row',

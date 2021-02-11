@@ -28,9 +28,26 @@ const Landing = (props: RouteComponentProps & any) => {
       youtubeId
     );
 
-    setClientId(newSocket.id);
-    setClientDisplayName(displayName);
-    setRoomYoutubeId(youtubeId);
+    if (validVideoURL(youtubeUrl)) {
+      const youtubeId = extractVideoId(youtubeUrl);
+      const newSocket = await createConnection(
+        displayName,
+        undefined,
+        undefined,
+        youtubeId
+      );
+
+      setClientId(newSocket.id);
+      setClientDisplayName(displayName);
+      setRoomYoutubeId(youtubeId);
+
+      props.history.push({
+        pathname: `/room/${newSocket.id}`,
+        socket: newSocket, // Send socket object as a prop to prevent redundant connection creation
+      });
+    }else {
+      alert('URL is not valid');
+    }
 
     props.history.push({
       pathname: `/room/${newSocket.id}`,
