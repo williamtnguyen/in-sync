@@ -1,5 +1,4 @@
-import { Playlist } from './Playlist'; 
-
+import { Playlist } from './Playlist';
 
 export interface Client {
   id: string;
@@ -13,7 +12,6 @@ export interface ClientMap {
 export interface RoomMap {
   [roomId: string]: { clients: Client[], youtubeID: string, playlist: Playlist };
 }
-
 
 /**
  * Singleton class that aggregates/encapsulates all room information in WebSocketServer
@@ -106,26 +104,24 @@ class Rooms {
   }
 
   updatePlaylist(roomID: string, youtubeID:string): void {
-    if(this.roomMap[roomID]){
+    if (this.roomMap[roomID]) {
       this.roomMap[roomID].playlist.addVideo(youtubeID);
     }
   }
 
   deleteVideo(roomID: string, youtubeID:string): void {
-    if(this.roomMap[roomID]){
+    if (this.roomMap[roomID]) {
       this.roomMap[roomID].playlist.deleteVideo(youtubeID);
     }
   }
 
   changeVideo(roomID: string, youtubeID: string): void {
-    if(this.roomMap[roomID]){
+    if (this.roomMap[roomID]) {
       this.setVideoLink(roomID, youtubeID);
       this.roomMap[roomID].playlist.deleteVideo(youtubeID);
     }
 
-    
   }
-
 
 }
 

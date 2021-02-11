@@ -89,14 +89,14 @@ export const roomSocketEvents = (
           type: ClientStates.UPDATE_PLAYLIST,
           data,
         });
-      break;
+        break;
 
       case 'deletePlaylistItem':
         clientDispatch({
           type: ClientStates.DELETE_VIDEO,
           playlist: data.playlist,
         });
-      break;
+        break;
 
       case 'changeVideo':
         clientDispatch({

@@ -69,33 +69,29 @@ const socketHandler = (io: WebSocketServer) => {
     });
 
     socket.on('addToPlaylist', (youtubeId) => {
-      
-      console.log('addToPlaylist triggered', {youtubeId});
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
-      const room = Rooms.getRoom(roomId)
-      if (client){
+      const room = Rooms.getRoom(roomId);
+      if (client) {
         io.to(
           Rooms.getClientRoomId(client.id)).emit(
             'notifyClient',
             createPlaylistItem(youtubeId)
           );
-          Rooms.updatePlaylist(roomId, youtubeId);      
-        }
+        Rooms.updatePlaylist(roomId, youtubeId);
+      }
     });
 
     socket.on('deletePlaylistItem', (playlist) => {
-      
-      console.log('deletePlaylistItem', {playlist});
       const client = Rooms.getClient(socket.id);
-    
-      if (client){
+
+      if (client) {
         io.to(
           Rooms.getClientRoomId(client.id)).emit(
             'notifyClient',
             deletePlaylistItem(playlist)
           );
-        }
+      }
     });
 
     socket.on('changeVideo', (youtubeId) => {
@@ -108,7 +104,7 @@ const socketHandler = (io: WebSocketServer) => {
             youtubeID: youtubeId
           })
         );
-        Rooms.changeVideo(roomId, youtubeId);
+      Rooms.changeVideo(roomId, youtubeId);
     });
 
   });
