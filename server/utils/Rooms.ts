@@ -106,12 +106,14 @@ class Rooms {
     }
   }
 
-  // playNextVideo(roomID: string): void {
-  //   if(this.roomMap[roomID]){
-  //     var head = this.roomMap[roomID].playlist.getHead();
+  changeVideo(roomID: string, youtubeID: string): void {
+    if(this.roomMap[roomID]){
+      this.setVideoLink(roomID, youtubeID);
+      this.roomMap[roomID].playlist.deleteVideo(youtubeID);
+    }
 
-  //   }
-  // }
+    
+  }
 
 
 }

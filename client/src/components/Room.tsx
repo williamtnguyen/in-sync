@@ -15,7 +15,7 @@ import { ClientContext } from '../contexts/clientContext';
 import { VideoContext } from '../contexts/videoContext';
 import { ClientStates } from '../utils/enums';
 import Chat from './chat/Chat';
-import VideoQueue from './videoQueue';
+import Playlist from './Playlist';
 
 type LocationState = {
   hostId: string;
@@ -169,7 +169,7 @@ const Room = ({ location, match }: RoomProps & any) => {
             <div className="col-sm-4">
               <div className="col-sm-12">
                 <Tabs defaultActiveKey="home" transition={false} id="noanim-tab-example">
-                    <Tab eventKey="home" title="Up Next"><VideoQueue socket={socket}/></Tab>
+                    <Tab eventKey="home" title="Up Next"><Playlist socket={socket}/></Tab>
                     <Tab eventKey="profile" title="Chat"><Chat socket={socket} /></Tab>
                 </Tabs>
               </div>

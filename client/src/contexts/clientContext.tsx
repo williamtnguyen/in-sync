@@ -18,11 +18,12 @@ export const ClientContext = createContext<IclientContext>(
 );
 
 export const ClientContextProvider = (props: any) => {
+  var playlist: string[] = [];
   const initialState = {
     youtubeID: '',
     clientList: [],
     messages: [],
-    playlist: [],
+    playlist: playlist,
   };
 
   const [clientData, clientDispatch] = useReducer(clientReducer, initialState);
