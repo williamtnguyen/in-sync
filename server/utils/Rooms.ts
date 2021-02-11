@@ -21,12 +21,10 @@ export interface RoomMap {
 class Rooms {
   private roomMap: RoomMap;
   private clientMap: ClientMap; // maps any socket.id to its respective roomId
-  //private playlist: Playlist;
 
   constructor() {
     this.roomMap = {};
     this.clientMap = {};
-    //this.playlist = new Playlist();
   }
 
   addRoom(roomId: string, youtubeID: string): void {
@@ -48,16 +46,27 @@ class Rooms {
   }
 
   addClient(roomId: string, clientId: string, clientName: string): void {
+    if (this.clientMap[clientId]) {
+      return;
+    }
     if (this.roomMap[roomId]) {
-      let createClient:boolean = true;
-      this.roomMap[roomId].clients.forEach((client) => {
-        client.name === clientName ? createClient = false : createClient = true;
-      });
-      if (createClient) {
-        const newClient: Client = { id: clientId, name: clientName };
-        this.roomMap[roomId].clients.push(newClient);
-        this.clientMap[clientId] = roomId;
-      }
+      const newClient: Client = { id: clientId, name: clientName };
+      this.roomMap[roomId].clients.push(newClient);
+      this.clientMap[clientId] = roomId;
+    } else {
+      throw new Error('Room with this ID does not exist');
+    }
+  }
+
+  updateClientId(roomId: string, oldClientId: string, newClientId: string) {
+    if (this.roomMap[roomId]) {
+      const oldClient = this.roomMap[roomId].clients.find(
+        (client: Client) => client.id === oldClientId);
+      if (oldClient) oldClient.id = newClientId;
+      else throw new Error('Old client can\'t be found');
+
+      delete this.clientMap[oldClientId];
+      this.clientMap[newClientId] = roomId;
     } else {
       throw new Error('Room with this ID does not exist');
     }

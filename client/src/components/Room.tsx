@@ -35,16 +35,27 @@ interface Client {
 }
 
 const Room = ({ location, match }: RoomProps & any) => {
+  // Global client state/mutators persisted with sessionStorage
+  const {
+    clientId,
+    setClientId,
+    clientDisplayName,
+    setClientDisplayName,
+    roomYoutubeId,
+  } = useContext(SocketContext);
+
   const [clients, setClients] = useState(
-    location.state ? [location.state.displayName] : []
+    clientId && clientDisplayName
+      ? [{ id: clientId, name: clientDisplayName }]
+      : []
   );
+  const [displayName, setDisplayName] = useState(clientDisplayName);
+
   const [enterDisplayName, setEnterDisplayName] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState('');
-  const [displayName, setDisplayName] = useState(
-    location.state ? location.state.displayName : ''
-  );
-  const { hostSocket } = useContext(SocketContext);
-  const [socket, setSocket] = useState(hostSocket);
+
+  const [socket, setSocket] = useState(location.socket ? location.socket : {});
+
   const { clientDispatch, clientData } = useContext(ClientContext);
   const { videoDispatch } = useContext(VideoContext);
   const dispatches = {
@@ -54,32 +65,50 @@ const Room = ({ location, match }: RoomProps & any) => {
 
   useEffect(() => {
     connectClient();
-    // eslint-disable-next-line
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientDisplayName, roomYoutubeId]);
 
-  // Creates a socket connection to server if client is not room host
   const connectClient = async () => {
-    if (location.state) {
-      const { hostId, youtubeID } = location.state;
-
-      // No hostId was sent as prop, therefore new client. Create connection
-      if (!hostId) {
-        const { id } = match.params;
-        const newSocket = await createConnection(displayName, id);
-        updateClientList(newSocket);
-        setSocket(newSocket);
-        roomSocketEvents(newSocket, dispatches);
-      }
-      // hostId was sent as prop, just subscibe to updateClientList broadcasts
-      else {
-        clientDispatch({ type: ClientStates.UPDATE_YOUTUBE_ID, youtubeID });
-        updateClientList(hostSocket);
-        setSocket(location.socket);
-        roomSocketEvents(socket, dispatches);
-      }
+    // Room host with socket from Landing page
+    if (location.socket) {
+      clientDispatch({
+        type: ClientStates.UPDATE_YOUTUBE_ID,
+        youtubeID: roomYoutubeId,
+      });
+      updateClientList(location.socket);
+      setSocket(location.socket);
+      roomSocketEvents(location.socket, dispatches);
     }
-    // Entered room from direct link rather than redirect from landing page. Prompt for displayName
-    else {
+    // Joining client or Room host that already made connection and refreshed
+    else if (clientId && clientDisplayName) {
+      const { roomId } = match.params;
+      const socketConnection = await createConnection(
+        clientDisplayName,
+        roomId,
+        clientId,
+        undefined
+      );
+      setClientId(socketConnection.id);
+      updateClientList(socketConnection);
+      setSocket(socketConnection);
+      roomSocketEvents(socketConnection, dispatches);
+    }
+    // Joining clients: inputted displayName
+    else if (!clientId && clientDisplayName) {
+      const { roomId } = match.params;
+      const socketConnection = await createConnection(
+        clientDisplayName,
+        roomId,
+        undefined,
+        undefined
+      );
+      setClientId(socketConnection.id);
+      updateClientList(socketConnection);
+      setSocket(socketConnection);
+      roomSocketEvents(socketConnection, dispatches);
+    }
+    // Joining client from direct URL, prompt for displayName
+    else if (!clientId && !clientDisplayName) {
       setEnterDisplayName(true);
     }
   };
@@ -99,12 +128,8 @@ const Room = ({ location, match }: RoomProps & any) => {
   const handleFormSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    const { id } = match.params;
-    const newSocket = await createConnection(displayNameInput, id);
     setDisplayName(displayNameInput);
-    updateClientList(newSocket);
-    setSocket(newSocket);
-    roomSocketEvents(newSocket, dispatches);
+    setClientDisplayName(displayNameInput);
     setEnterDisplayName(false);
 
   };

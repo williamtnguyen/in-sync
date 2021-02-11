@@ -2,42 +2,53 @@ import React, { useState, useContext, ChangeEvent, FormEvent } from 'react';
 import { createConnection } from '../utils/socket-client';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 import { SocketContext } from '../App';
-import { extractVideoID, validVideoURL } from '../utils/helpers';
+import { extractVideoId, validVideoURL } from '../utils/helpers';
 
 const Landing = (props: RouteComponentProps & any) => {
   const [createDisplayName, setCreateDisplayName] = useState('');
+  const [youtubeLink, setYoutubeLink] = useState('');
   const [joinRoomId, setJoinRoomId] = useState('');
   const [joinDisplayName, setJoinDisplayName] = useState('');
-  const [youtubeLink, setYoutubeLink] = useState('');
-  const { updateHostSocketBuffer } = useContext(SocketContext);
+
+  const { setClientId, setClientDisplayName, setRoomYoutubeId } = useContext(
+    SocketContext
+  );
 
   const startSession = async (
     event: FormEvent,
     displayName: string,
-    youtubeURL: string
+    youtubeUrl: string
   ) => {
     event.preventDefault();
-    if(validVideoURL(youtubeURL)){
-      const youtubeID = extractVideoID(youtubeURL);
-      console.log('Start Session', {youtubeID});
-      const newSocket = await createConnection(displayName, undefined, youtubeID);
 
-      updateHostSocketBuffer(newSocket);
+    if(validVideoURL(youtubeUrl)){
+      const youtubeId = extractVideoId(youtubeUrl);
+      const newSocket = await createConnection(
+        displayName,
+        undefined,
+        undefined,
+        youtubeId
+      );
+
+      setClientId(newSocket.id);
+      setClientDisplayName(displayName);
+      setRoomYoutubeId(youtubeId);
 
       props.history.push({
         pathname: `/room/${newSocket.id}`,
-        state: { hostId: newSocket.id, displayName, youtubeID },
-        socket: newSocket,
+        socket: newSocket, // Send socket object as a prop to prevent redundant connection creation
       });
     }else {
       alert('URL is not valid');
     }
+
   };
 
   const joinSession = (roomId: string, displayName: string) => {
+    setClientDisplayName(displayName);
+
     props.history.push({
       pathname: `/room/${roomId}`,
-      state: { displayName },
     });
   };
 
