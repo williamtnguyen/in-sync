@@ -23,8 +23,10 @@ export class Playlist{
   deleteVideo(youtubeID: string): void {
     const node: typeof LinkedList.Item = this.map.get(youtubeID);
 
-    node.detach();
-    this.map.delete(youtubeID);
+    if (node) {
+      node.detach();
+      this.map.delete(youtubeID);
+    }
   }
 
   getNextVideo(): typeof LinkedList.Item {
@@ -32,6 +34,10 @@ export class Playlist{
     const value: typeof LinkedList.Item =  this.list.head;
     const node: typeof LinkedList.Item = this.map.get(value);
     console.log('value', value); // tslint:disable-line
+  }
+
+  getPlayListIds(): string[] {
+    return [...this.map.keys()];
   }
 }
 

@@ -13,9 +13,7 @@ export const clientReducer = (state: any, action: any) => {
         ...state,
         playlist: [
           ...state.playlist,
-          {
-            youtubeID,
-          },
+          youtubeID,
         ],
       };
 
