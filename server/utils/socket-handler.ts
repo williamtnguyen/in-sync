@@ -31,6 +31,7 @@ const socketHandler = (io: WebSocketServer) => {
         );
 
       io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
+      io.to(roomId).emit('updatePlaylist', Rooms.getRoom(roomId).playlist.getPlayListIds());
 
       if (!youtubeID) {
         const room = Rooms.getRoom(roomId);
@@ -71,10 +72,8 @@ const socketHandler = (io: WebSocketServer) => {
     socket.on('addToPlaylist', (youtubeId) => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
-      const room = Rooms.getRoom(roomId);
       if (client) {
-        io.to(
-          Rooms.getClientRoomId(client.id)).emit(
+        io.to(roomId).emit(
             'notifyClient',
             createPlaylistItem(youtubeId)
           );
@@ -82,14 +81,18 @@ const socketHandler = (io: WebSocketServer) => {
       }
     });
 
-    socket.on('deletePlaylistItem', (playlist) => {
+    socket.on('deletePlaylistItem', (youtubeId) => {
       const client = Rooms.getClient(socket.id);
+      const roomId = Rooms.getClientRoomId(client.id);
+      const room = Rooms.getRoom(roomId);
+
+      room.playlist.deleteVideo(youtubeId);
+      const newPlaylist: string[] = room.playlist.getPlayListIds();
 
       if (client) {
-        io.to(
-          Rooms.getClientRoomId(client.id)).emit(
+        io.to(roomId).emit(
             'notifyClient',
-            deletePlaylistItem(playlist)
+            deletePlaylistItem(newPlaylist)
           );
       }
     });

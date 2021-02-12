@@ -118,7 +118,6 @@ class Rooms {
       this.setVideoLink(roomID, youtubeID);
       this.roomMap[roomID].playlist.deleteVideo(youtubeID);
     }
-
   }
 
 }

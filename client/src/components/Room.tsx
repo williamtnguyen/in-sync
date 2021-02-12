@@ -90,6 +90,7 @@ const Room = ({ location, match }: RoomProps & any) => {
       );
       setClientId(socketConnection.id);
       updateClientList(socketConnection);
+      updatePlaylist(socketConnection);
       setSocket(socketConnection);
       roomSocketEvents(socketConnection, dispatches);
     }
@@ -104,6 +105,7 @@ const Room = ({ location, match }: RoomProps & any) => {
       );
       setClientId(socketConnection.id);
       updateClientList(socketConnection);
+      updatePlaylist(socketConnection);
       setSocket(socketConnection);
       roomSocketEvents(socketConnection, dispatches);
     }
@@ -117,6 +119,15 @@ const Room = ({ location, match }: RoomProps & any) => {
   const updateClientList = (connectingSocket: SocketIOClient.Socket) => {
     connectingSocket.on('updateClientList', (newClientList: Client[]) => {
       setClients(newClientList);
+    });
+  };
+
+  const updatePlaylist = (connectingSocket: SocketIOClient.Socket) => {
+    connectingSocket.on('updatePlaylist', (newPlaylist: string[]) => {
+      clientDispatch({
+        type: ClientStates.DELETE_VIDEO,
+        playlist: newPlaylist,
+      });
     });
   };
 
@@ -194,12 +205,12 @@ const Room = ({ location, match }: RoomProps & any) => {
             <div className="col-sm-4">
               <div className="col-sm-12">
                 <Tabs defaultActiveKey="home" transition={false} id="noanim-tab-example">
-                    <Tab eventKey="home" title="Up Next"><Playlist socket={socket}/></Tab>
+                    <Tab eventKey="home" title="Up Next"><Playlist socket={socket} /></Tab>
                     <Tab eventKey="profile" title="Chat"><Chat socket={socket} /></Tab>
                 </Tabs>
               </div>
             </div>
-          </div>;
+          </div>
           {/* {' '}
             <Video
               youtubeID={clientData.youtubeID}
@@ -225,7 +236,7 @@ const Room = ({ location, match }: RoomProps & any) => {
             </table> */}
           {/* <div>
               <Chat socket={socket} />
-            </div> */};
+            </div> */}
         </div >
       )}
     </div >

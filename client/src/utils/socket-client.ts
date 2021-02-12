@@ -103,6 +103,7 @@ export const roomSocketEvents = (
           type: ClientStates.CHANGE_VIDEO,
           data,
         });
+        break;
 
       default:
         break;
