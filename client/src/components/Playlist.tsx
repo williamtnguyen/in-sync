@@ -96,7 +96,7 @@ const Playlist = ({ socket }: props) => {
         display: 'flex',
         flexDirection: 'column',
         height: '600px',
-        width: '360px',
+        width: '25em',
         marginTop: '5px',
         borderRadius: '5px',
         border: '1px solid #ddd',
@@ -116,53 +116,51 @@ const Playlist = ({ socket }: props) => {
         }}
       />
       <table className="table">
-        <thead>
-          <tbody>
-            {clientData.playlist.map((youtubeId: string, index) => (
-              <tr key={index}>
-                <td>
-                  <img src={renderImgURL(youtubeId)}
-                    alt="" height="110" width = "150"/>
-                </td>
-                <div
-                  style={{
-                    wordWrap: 'break-word',
-                    fontSize: '12px',
-                  }}
-                >
-                  <td>
-                    {renderTitle(youtubeId)}
-                  </td>
+        <tbody>
+          {clientData.playlist.map((youtubeId: string, index) => (
+            <tr key={index}>
+              <td>
+                <img src={renderImgURL(youtubeId)}
+                  alt="" height="110" width = "150"/>
+              </td>
+              <td
+                style={{
+                  wordWrap: 'break-word',
+                  fontSize: '12px',
+                }}
+              >
+                {renderTitle(youtubeId)}
+                <div>
+                  <button
+                    id = {index.toString()}
+                    type="submit"
+                    className="btn btn-primary"
+                    onClick= {(event) => onPlay(event, youtubeId)}
+                    style={{
+                      marginTop: '3px',
+                      fontSize: '12px',
+                    }}
+                  >
+                    Play
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    id={index.toString()}
+                    onClick= {(event) => onDelete(event, youtubeId)}
+                    style={{
+                      marginTop: '3px',
+                      marginLeft: '5px',
+                      fontSize: '12px',
+                    }}
+                  >
+                    Delete
+                  </button>
                 </div>
-                <button
-                  id = {index.toString()}
-                  type="submit"
-                  className="btn btn-primary"
-                  onClick= {(event) => onPlay(event, youtubeId)}
-                  style={{
-                    marginTop: '3px',
-                    fontSize: '12px',
-                  }}
-                >
-                  Play
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  id={index.toString()}
-                  onClick= {(event) => onDelete(event, youtubeId)}
-                  style={{
-                    marginTop: '3px',
-                    marginLeft: '5px',
-                    fontSize: '12px',
-                  }}
-                >
-                  Delete
-                </button>
-              </tr>
-            ))}
-          </tbody>
-        </thead>
+              </td>
+            </tr>
+          ))}
+        </tbody>
       </table>
       <form onSubmit = {(event) => onAddVideo(event, youtubeLink)}
           style={{
