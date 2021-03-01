@@ -20,13 +20,6 @@ const Landing = (props: RouteComponentProps & any) => {
     youtubeUrl: string
   ) => {
     event.preventDefault();
-    const youtubeId = extractVideoId(youtubeUrl);
-    const newSocket = await createConnection(
-      displayName,
-      undefined,
-      undefined,
-      youtubeId
-    );
 
     if (validVideoURL(youtubeUrl)) {
       const youtubeId = extractVideoId(youtubeUrl);
@@ -49,10 +42,6 @@ const Landing = (props: RouteComponentProps & any) => {
       alert('URL is not valid');
     }
 
-    props.history.push({
-      pathname: `/room/${newSocket.id}`,
-      socket: newSocket, // Send socket object as a prop to prevent redundant connection creation
-    });
   };
 
   const joinSession = (roomId: string, displayName: string) => {
