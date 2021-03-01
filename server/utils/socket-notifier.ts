@@ -4,7 +4,7 @@ export const createClientNotifier = (
 ): object => {
   return {
     notification,
-    details
+    details,
   };
 };
 
@@ -21,18 +21,14 @@ export const createUserMessage = (
   };
 };
 
-export const createPlaylistItem = (
-  youtubeID: string,
-): object => {
+export const createPlaylistItem = (playlist: string[]): object => {
   return {
     notification: 'addToPlaylist',
-    youtubeID,
+    playlist,
   };
 };
 
-export const deletePlaylistItem = (
-  playlist: string[],
-): object => {
+export const deletePlaylistItem = (playlist: string[]): object => {
   return {
     notification: 'deletePlaylistItem',
     playlist,

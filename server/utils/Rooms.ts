@@ -10,7 +10,11 @@ export interface ClientMap {
 }
 
 export interface RoomMap {
-  [roomId: string]: { clients: Client[], youtubeID: string, playlist: Playlist };
+  [roomId: string]: {
+    clients: Client[];
+    youtubeID: string;
+    playlist: Playlist;
+  };
 }
 
 /**
@@ -19,12 +23,10 @@ export interface RoomMap {
 class Rooms {
   private roomMap: RoomMap;
   private clientMap: ClientMap; // maps any socket.id to its respective roomId
-  // private playlist: Playlist;
 
   constructor() {
     this.roomMap = {};
     this.clientMap = {};
-    // this.playlist = new Playlist();
   }
 
   addRoom(roomId: string, youtubeID: string): void {
@@ -32,7 +34,7 @@ class Rooms {
       const roomDetails = {
         clients: [],
         youtubeID,
-        playlist: new Playlist()
+        playlist: new Playlist(),
       };
       this.roomMap[roomId] = roomDetails;
     }
@@ -61,7 +63,8 @@ class Rooms {
   updateClientId(roomId: string, oldClientId: string, newClientId: string) {
     if (this.roomMap[roomId]) {
       const oldClient = this.roomMap[roomId].clients.find(
-        (client: Client) => client.id === oldClientId);
+        (client: Client) => client.id === oldClientId
+      );
       if (oldClient) oldClient.id = newClientId;
       else throw new Error('Old client can\'t be found');
 
@@ -103,13 +106,13 @@ class Rooms {
     }
   }
 
-  updatePlaylist(roomID: string, youtubeID:string): void {
+  addVideo(roomID: string, youtubeID: string): void {
     if (this.roomMap[roomID]) {
       this.roomMap[roomID].playlist.addVideo(youtubeID);
     }
   }
 
-  deleteVideo(roomID: string, youtubeID:string): void {
+  deleteVideo(roomID: string, youtubeID: string): void {
     if (this.roomMap[roomID]) {
       this.roomMap[roomID].playlist.deleteVideo(youtubeID);
     }
@@ -122,6 +125,9 @@ class Rooms {
     }
   }
 
+  getPlaylistVideoIds(roomId: string): string[] {
+    return this.roomMap[roomId].playlist.getPlaylistIds();
+  }
 }
 
 export default new Rooms();

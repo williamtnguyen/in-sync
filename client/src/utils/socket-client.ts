@@ -87,7 +87,7 @@ export const roomSocketEvents = (
       case 'addToPlaylist':
         clientDispatch({
           type: ClientStates.UPDATE_PLAYLIST,
-          data,
+          playlist: data.playlist,
         });
         break;
 
