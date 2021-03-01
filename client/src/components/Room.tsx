@@ -210,11 +210,6 @@ const Room = ({ location, match }: RoomProps & any) => {
                 </Tabs>
               </div>
             </div>
-            <div className="col-sm-4">
-              <div className="col-sm-12">
-                <VideoQueue socket={socket}/>
-              </div>
-            </div>
           </div>
           {/* {' '}
             <Video
