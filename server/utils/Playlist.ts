@@ -1,12 +1,12 @@
 const LinkedList = require('linked-list');
 
-export interface PlaylistMap{
-  [youtubeID: string] : typeof LinkedList.Item;
+export interface PlaylistMap {
+  [youtubeID: string]: typeof LinkedList.Item;
 }
 
-export class Playlist{
+export class Playlist {
   private list: typeof LinkedList;
-  private map: Map<string, typeof LinkedList.Item>;
+  private map: PlaylistMap;
 
   constructor() {
     this.list = new LinkedList();
@@ -31,12 +31,12 @@ export class Playlist{
 
   getNextVideo(): typeof LinkedList.Item {
     // to be used for autoplay
-    const value: typeof LinkedList.Item =  this.list.head;
+    const value: typeof LinkedList.Item = this.list.head;
     const node: typeof LinkedList.Item = this.map.get(value);
     console.log('value', value); // tslint:disable-line
   }
 
-  getPlayListIds(): string[] {
+  getPlaylistIds(): string[] {
     return [...this.map.keys()];
   }
 }
