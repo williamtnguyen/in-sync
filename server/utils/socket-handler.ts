@@ -19,16 +19,14 @@ const socketHandler = (io: WebSocketServer) => {
       console.log('join broadcast triggered');
       const {
         roomId,
-        oldClientId,
-        newClientId,
+        clientId,
         clientName,
         youtubeID,
       } = clientData;
       socket.join(roomId);
 
       Rooms.addRoom(roomId, youtubeID);
-      if (oldClientId) Rooms.updateClientId(roomId, oldClientId, newClientId);
-      Rooms.addClient(roomId, newClientId, clientName);
+      Rooms.addClient(roomId, clientId, clientName);
       Rooms.getRoomClients(roomId).forEach((client) => {
         // tslint:disable-next-line: no-console
         console.log(client);
@@ -38,7 +36,7 @@ const socketHandler = (io: WebSocketServer) => {
         'notifyClient',
         createClientNotifier('clientJoin', {
           roomId,
-          newClientId,
+          clientId,
           clientName,
         })
       );
@@ -109,13 +107,20 @@ const socketHandler = (io: WebSocketServer) => {
     socket.on('changeVideo', (youtubeId) => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
-      io.to(Rooms.getClientRoomId(client.id)).emit(
+      io.to(roomId).emit(
         'notifyClient',
         createClientNotifier('CHANGE_VIDEO', {
           youtubeID: youtubeId,
         })
       );
       Rooms.changeVideo(roomId, youtubeId);
+    });
+
+    socket.on('disconnect', () => {
+      const client = Rooms.getClient(socket.id);
+      const roomId = Rooms.getClientRoomId(client.id);
+      const newClientList = Rooms.removeClient(roomId, socket.id);
+      io.to(roomId).emit('updateClientList', newClientList);
     });
   });
 };
