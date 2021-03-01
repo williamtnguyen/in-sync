@@ -19,12 +19,12 @@ export interface RoomMap {
 class Rooms {
   private roomMap: RoomMap;
   private clientMap: ClientMap; // maps any socket.id to its respective roomId
-  //private playlist: Playlist;
+  // private playlist: Playlist;
 
   constructor() {
     this.roomMap = {};
     this.clientMap = {};
-    //this.playlist = new Playlist();
+    // this.playlist = new Playlist();
   }
 
   addRoom(roomId: string, youtubeID: string): void {
