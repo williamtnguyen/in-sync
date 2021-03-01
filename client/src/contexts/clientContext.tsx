@@ -5,6 +5,7 @@ interface IinitialState {
   youtubeID: string;
   clientList: [];
   messages: [];
+  playlist: [];
 }
 
 interface IclientContext {
@@ -21,6 +22,7 @@ export const ClientContextProvider = (props: any) => {
     youtubeID: '',
     clientList: [],
     messages: [],
+    playlist: [],
   };
 
   const [clientData, clientDispatch] = useReducer(clientReducer, initialState);

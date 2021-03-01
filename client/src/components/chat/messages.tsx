@@ -60,11 +60,12 @@ const Messages = (props: MessagesProps) => {
         overflowY: 'auto',
       }}
     >
-      {messages.map((message: Message) => (
+    {messages && messages.length > 0 && messages.map((message: Message) => (
         <Message user={message.client} key={message.clientId}>
           {message.message}
         </Message>
       ))}
+
       <div className="temp" ref={messageEnd} />
     </div>
   );

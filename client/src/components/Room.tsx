@@ -6,6 +6,8 @@ import React, {
   FormEvent,
 } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
+import Tabs from 'react-bootstrap/Tabs';
+import Tab from 'react-bootstrap/Tab';
 import { createConnection, roomSocketEvents } from '../utils/socket-client';
 import { SocketContext } from '../App';
 import Video from './Video';
@@ -13,6 +15,7 @@ import { ClientContext } from '../contexts/clientContext';
 import { VideoContext } from '../contexts/videoContext';
 import { ClientStates } from '../utils/enums';
 import Chat from './chat/Chat';
+import Playlist from './Playlist';
 
 type LocationState = {
   hostId: string;
@@ -87,6 +90,7 @@ const Room = ({ location, match }: RoomProps & any) => {
       );
       setClientId(socketConnection.id);
       updateClientList(socketConnection);
+      updatePlaylist(socketConnection);
       setSocket(socketConnection);
       roomSocketEvents(socketConnection, dispatches);
     }
@@ -101,6 +105,7 @@ const Room = ({ location, match }: RoomProps & any) => {
       );
       setClientId(socketConnection.id);
       updateClientList(socketConnection);
+      updatePlaylist(socketConnection);
       setSocket(socketConnection);
       roomSocketEvents(socketConnection, dispatches);
     }
@@ -117,6 +122,15 @@ const Room = ({ location, match }: RoomProps & any) => {
     });
   };
 
+  const updatePlaylist = (connectingSocket: SocketIOClient.Socket) => {
+    connectingSocket.on('updatePlaylist', (newPlaylist: string[]) => {
+      clientDispatch({
+        type: ClientStates.DELETE_VIDEO,
+        playlist: newPlaylist,
+      });
+    });
+  };
+
   const handleInputChange = (event: ChangeEvent) => {
     const element = event.target as HTMLInputElement;
     setDisplayNameInput(element.value);
@@ -128,6 +142,7 @@ const Room = ({ location, match }: RoomProps & any) => {
     setDisplayName(displayNameInput);
     setClientDisplayName(displayNameInput);
     setEnterDisplayName(false);
+
   };
 
   return (
@@ -189,7 +204,10 @@ const Room = ({ location, match }: RoomProps & any) => {
             </div>
             <div className="col-sm-4">
               <div className="col-sm-12">
-                <Chat socket={socket} />
+                <Tabs defaultActiveKey="home" transition={false} id="noanim-tab-example">
+                    <Tab eventKey="home" title="Up Next"><Playlist socket={socket} /></Tab>
+                    <Tab eventKey="profile" title="Chat"><Chat socket={socket} /></Tab>
+                </Tabs>
               </div>
             </div>
           </div>
@@ -219,9 +237,9 @@ const Room = ({ location, match }: RoomProps & any) => {
           {/* <div>
               <Chat socket={socket} />
             </div> */}
-        </div>
+        </div >
       )}
-    </div>
+    </div >
   );
 };
 

@@ -1,6 +1,6 @@
 import { Server as WebSocketServer, Socket } from 'socket.io';
 import Rooms from './Rooms';
-import { createClientNotifier, createUserMessage } from './socket-notifier';
+import { createClientNotifier, createPlaylistItem, createUserMessage, deletePlaylistItem } from './socket-notifier';
 
 const socketHandler = (io: WebSocketServer) => {
   // Client connection event
@@ -31,6 +31,7 @@ const socketHandler = (io: WebSocketServer) => {
         );
 
       io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
+      io.to(roomId).emit('updatePlaylist', Rooms.getRoom(roomId).playlist.getPlayListIds());
 
       if (!youtubeID) {
         const room = Rooms.getRoom(roomId);
@@ -67,6 +68,48 @@ const socketHandler = (io: WebSocketServer) => {
         );
       }
     });
+
+    socket.on('addToPlaylist', (youtubeId) => {
+      const client = Rooms.getClient(socket.id);
+      const roomId = Rooms.getClientRoomId(client.id);
+      if (client) {
+        io.to(roomId).emit(
+            'notifyClient',
+            createPlaylistItem(youtubeId)
+          );
+        Rooms.updatePlaylist(roomId, youtubeId);
+      }
+    });
+
+    socket.on('deletePlaylistItem', (youtubeId) => {
+      const client = Rooms.getClient(socket.id);
+      const roomId = Rooms.getClientRoomId(client.id);
+      const room = Rooms.getRoom(roomId);
+
+      room.playlist.deleteVideo(youtubeId);
+      const newPlaylist: string[] = room.playlist.getPlayListIds();
+
+      if (client) {
+        io.to(roomId).emit(
+            'notifyClient',
+            deletePlaylistItem(newPlaylist)
+          );
+      }
+    });
+
+    socket.on('changeVideo', (youtubeId) => {
+      const client = Rooms.getClient(socket.id);
+      const roomId = Rooms.getClientRoomId(client.id);
+      io.to(
+        Rooms.getClientRoomId(client.id)).emit(
+          'notifyClient',
+          createClientNotifier('CHANGE_VIDEO', {
+            youtubeID: youtubeId
+          })
+        );
+      Rooms.changeVideo(roomId, youtubeId);
+    });
+
   });
 };
 

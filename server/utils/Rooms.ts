@@ -1,3 +1,5 @@
+import { Playlist } from './Playlist';
+
 export interface Client {
   id: string;
   name: string;
@@ -8,7 +10,7 @@ export interface ClientMap {
 }
 
 export interface RoomMap {
-  [roomId: string]: { clients: Client[]; youtubeID: string };
+  [roomId: string]: { clients: Client[], youtubeID: string, playlist: Playlist };
 }
 
 /**
@@ -17,10 +19,12 @@ export interface RoomMap {
 class Rooms {
   private roomMap: RoomMap;
   private clientMap: ClientMap; // maps any socket.id to its respective roomId
+  // private playlist: Playlist;
 
   constructor() {
     this.roomMap = {};
     this.clientMap = {};
+    // this.playlist = new Playlist();
   }
 
   addRoom(roomId: string, youtubeID: string): void {
@@ -28,6 +32,7 @@ class Rooms {
       const roomDetails = {
         clients: [],
         youtubeID,
+        playlist: new Playlist()
       };
       this.roomMap[roomId] = roomDetails;
     }
@@ -97,6 +102,26 @@ class Rooms {
       this.roomMap[roomID].youtubeID = newYoutubeID;
     }
   }
+
+  updatePlaylist(roomID: string, youtubeID:string): void {
+    if (this.roomMap[roomID]) {
+      this.roomMap[roomID].playlist.addVideo(youtubeID);
+    }
+  }
+
+  deleteVideo(roomID: string, youtubeID:string): void {
+    if (this.roomMap[roomID]) {
+      this.roomMap[roomID].playlist.deleteVideo(youtubeID);
+    }
+  }
+
+  changeVideo(roomID: string, youtubeID: string): void {
+    if (this.roomMap[roomID]) {
+      this.setVideoLink(roomID, youtubeID);
+      this.roomMap[roomID].playlist.deleteVideo(youtubeID);
+    }
+  }
+
 }
 
 export default new Rooms();

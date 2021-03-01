@@ -84,6 +84,27 @@ export const roomSocketEvents = (
         });
         break;
 
+      case 'addToPlaylist':
+        clientDispatch({
+          type: ClientStates.UPDATE_PLAYLIST,
+          data,
+        });
+        break;
+
+      case 'deletePlaylistItem':
+        clientDispatch({
+          type: ClientStates.DELETE_VIDEO,
+          playlist: data.playlist,
+        });
+        break;
+
+      case 'changeVideo':
+        clientDispatch({
+          type: ClientStates.CHANGE_VIDEO,
+          data,
+        });
+        break;
+
       default:
         break;
     }

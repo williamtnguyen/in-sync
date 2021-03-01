@@ -2,7 +2,7 @@ import React, { useState, useContext, ChangeEvent, FormEvent } from 'react';
 import { createConnection } from '../utils/socket-client';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 import { SocketContext } from '../App';
-import { extractVideoId } from '../utils/helpers';
+import { extractVideoId, validVideoURL } from '../utils/helpers';
 
 const Landing = (props: RouteComponentProps & any) => {
   const [createDisplayName, setCreateDisplayName] = useState('');
@@ -20,22 +20,28 @@ const Landing = (props: RouteComponentProps & any) => {
     youtubeUrl: string
   ) => {
     event.preventDefault();
-    const youtubeId = extractVideoId(youtubeUrl);
-    const newSocket = await createConnection(
-      displayName,
-      undefined,
-      undefined,
-      youtubeId
-    );
 
-    setClientId(newSocket.id);
-    setClientDisplayName(displayName);
-    setRoomYoutubeId(youtubeId);
+    if (validVideoURL(youtubeUrl)) {
+      const youtubeId = extractVideoId(youtubeUrl);
+      const newSocket = await createConnection(
+        displayName,
+        undefined,
+        undefined,
+        youtubeId
+      );
 
-    props.history.push({
-      pathname: `/room/${newSocket.id}`,
-      socket: newSocket, // Send socket object as a prop to prevent redundant connection creation
-    });
+      setClientId(newSocket.id);
+      setClientDisplayName(displayName);
+      setRoomYoutubeId(youtubeId);
+
+      props.history.push({
+        pathname: `/room/${newSocket.id}`,
+        socket: newSocket, // Send socket object as a prop to prevent redundant connection creation
+      });
+    }else {
+      alert('URL is not valid');
+    }
+
   };
 
   const joinSession = (roomId: string, displayName: string) => {
@@ -55,6 +61,7 @@ const Landing = (props: RouteComponentProps & any) => {
         break;
       case 'setYoutubeLink':
         setYoutubeLink(element.value);
+        console.log('Start Session', { youtubeLink }); // tslint:disable-line
         break;
       case 'joinRoomId':
         setJoinRoomId(element.value);
