@@ -60,16 +60,19 @@ class Rooms {
     }
   }
 
-  updateClientId(roomId: string, oldClientId: string, newClientId: string) {
+  removeClient(roomId: string, clientId: string) {
+    if (!this.clientMap[clientId]) {
+      return;
+    }
     if (this.roomMap[roomId]) {
-      const oldClient = this.roomMap[roomId].clients.find(
-        (client: Client) => client.id === oldClientId
-      );
-      if (oldClient) oldClient.id = newClientId;
-      else throw new Error('Old client can\'t be found');
-
-      delete this.clientMap[oldClientId];
-      this.clientMap[newClientId] = roomId;
+      const clientList: Client[] = this.getRoomClients(roomId);
+      for (let i = 0; i < clientList.length; i += 1) {
+        const client = clientList[i];
+        if (client.id === clientId) {
+          clientList.splice(i, 1);
+          return clientList;
+        }
+      }
     } else {
       throw new Error('Room with this ID does not exist');
     }

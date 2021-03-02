@@ -16,9 +16,8 @@ export const createConnection = (
     socket.on('connect', () => {
       const clientData = {
         roomId: roomId ? roomId : socket.id,
-        oldClientId,
         // if a clientID is present in sessionStorage, use it again
-        newClientId: socket.id,
+        clientId: socket.id,
         clientName: displayName,
         youtubeID,
       };

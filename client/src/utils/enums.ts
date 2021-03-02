@@ -9,7 +9,6 @@ export enum VideoStates {
 export enum ClientStates {
   UPDATE_CLIENT_NAME,
   UPDATE_YOUTUBE_ID,
-  UPDATE_CLIENT_LIST,
   UPDATE_CHAT_MESSAGES,
   UPDATE_PLAYLIST,
   DELETE_VIDEO,
