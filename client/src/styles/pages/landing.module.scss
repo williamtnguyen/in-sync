@@ -1,0 +1,16 @@
+.root {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #2c2c2c;
+}
+
+.content {
+  width: 40%;
+  max-width: 50%;
+  border: 2px solid black;
+  border-radius: 5px;
+  padding: 3rem;
+  background-color: #fefefe;
+}

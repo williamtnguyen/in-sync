@@ -1,0 +1,19 @@
+.root {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.main__content {
+  height: 100vh;
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.left__col {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

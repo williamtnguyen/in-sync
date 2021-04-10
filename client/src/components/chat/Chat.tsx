@@ -1,6 +1,9 @@
-import React, { useState, useContext, FormEvent } from 'react';
+import React, { useContext } from 'react';
 import Messages from './messages';
 import { ClientContext } from '../../contexts/clientContext';
+
+import { Form, Input, Button } from 'antd';
+import chatStyles from '../../styles/components/chat.module.scss';
 
 interface ChatProps {
   socket: SocketIOClient.Socket;
@@ -9,76 +12,28 @@ interface ChatProps {
 const Chat = (props: ChatProps) => {
   const { socket } = props;
   const { clientData } = useContext(ClientContext);
-  const [message, setMessage] = useState('');
+  const [form] = Form.useForm();
 
-  const onSend = (evt: FormEvent) => {
-    evt.preventDefault();
-    socket.emit('newMessage', message);
-    setMessage('');
-  };
-
-  const onMessageChange = (evt: FormEvent<HTMLInputElement>) => {
-    setMessage(evt.currentTarget.value);
+  const onSend = (fieldValues: any) => {
+    socket.emit('newMessage', fieldValues.message);
+    form.resetFields();
   };
 
   return (
-    <div
-      style={{
-        backgroundColor: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '600px',
-        width: '400px',
-        marginTop: '5px',
-        borderRadius: '5px',
-        border: '1px solid #ddd',
-        boxShadow: '3px 3px 5px #eee',
-        padding: '10px',
-        boxSizing: 'border-box',
-      }}
-    >
-      {/* Commented out, clientList doesn't work rn
-                and we already display the participant list 
-                below the video 
-            */}
-      {/* <Participants users={clientData.clientList} /> */}
-      <strong>Chatroom</strong>
-      <div
-        style={{
-          height: '1px',
-          backgroundColor: '#eee',
-          margin: '12px 0',
-        }}
-      />
+    <div className={chatStyles.root}>
+      <h3>Activity Log / Session Chat</h3>
       <Messages messages={clientData.messages} />
-      <form
-        action=""
-        onSubmit={onSend}
-        style={{
-          display: 'flex',
-          flexDirection: 'row',
-        }}
-      >
-        <input
-          type="text"
-          placeholder="Send message"
-          value={message}
-          onChange={onMessageChange}
-          required
-          style={{
-            width: '100%',
-          }}
-        />
-        <button
-          type="submit"
-          className="btn btn-primary"
-          style={{
-            marginLeft: '10px',
-          }}
-        >
-          Send
-        </button>
-      </form>
+
+      <Form form={form} layout="inline" onFinish={onSend}>
+        <Form.Item name="message" className={chatStyles.message__input}>
+          <Input placeholder="Send a message..." autoComplete="off" />
+        </Form.Item>
+        <Form.Item className={chatStyles.send__btn}>
+          <Button type="primary" shape="round" htmlType="submit">
+            Send
+          </Button>
+        </Form.Item>
+      </Form>
     </div>
   );
 };

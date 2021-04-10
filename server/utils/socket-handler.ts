@@ -17,12 +17,7 @@ const socketHandler = (io: WebSocketServer) => {
     socket.on('join', (clientData) => {
       // tslint:disable-next-line: no-console
       console.log('join broadcast triggered');
-      const {
-        roomId,
-        clientId,
-        clientName,
-        youtubeID,
-      } = clientData;
+      const { roomId, clientId, clientName, youtubeID } = clientData;
       socket.join(roomId);
 
       Rooms.addRoom(roomId, youtubeID);
@@ -32,6 +27,7 @@ const socketHandler = (io: WebSocketServer) => {
         console.log(client);
       });
 
+      // TODO: not sure if this is listened to on client side
       socket.broadcast.to(roomId).emit(
         'notifyClient',
         createClientNotifier('clientJoin', {
@@ -44,6 +40,7 @@ const socketHandler = (io: WebSocketServer) => {
       io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
       io.to(roomId).emit('updatePlaylist', Rooms.getPlaylistVideoIds(roomId));
 
+      // TODO: refactor logic without youtubeID in general
       if (!youtubeID) {
         const room = Rooms.getRoom(roomId);
         socket.emit(

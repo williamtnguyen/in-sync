@@ -4,13 +4,17 @@ export interface PlaylistMap {
   [youtubeID: string]: typeof LinkedList.Item;
 }
 
+/**
+ * Playlist class implemented with Doubly-Linked-List and HashMap
+ * for O(1) node insertion/deletion/mutation
+ */
 export class Playlist {
   private list: typeof LinkedList;
   private map: PlaylistMap;
 
   constructor() {
     this.list = new LinkedList();
-    this.map = new Map<string, typeof LinkedList.Item>();
+    this.map = new Map<string, typeof LinkedList.Item>(); // maps array position to node pointer
   }
 
   addVideo(youtubeID: string): void {
@@ -29,13 +33,7 @@ export class Playlist {
     }
   }
 
-  getNextVideo(): typeof LinkedList.Item {
-    // to be used for autoplay
-    const value: typeof LinkedList.Item = this.list.head;
-    const node: typeof LinkedList.Item = this.map.get(value);
-    console.log('value', value); // tslint:disable-line
-  }
-
+  // O(n) transformation: figure out if we can do this faster
   getPlaylistIds(): string[] {
     return [...this.map.keys()];
   }
