@@ -13,4 +13,5 @@ export enum ClientStates {
   UPDATE_PLAYLIST,
   DELETE_VIDEO,
   CHANGE_VIDEO,
+  MOVE_VIDEO,
 }

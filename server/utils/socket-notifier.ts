@@ -34,3 +34,10 @@ export const deletePlaylistItem = (playlist: string[]): object => {
     playlist,
   };
 };
+
+export const movePlaylistItem = (playlist: string[]): object => {
+  return {
+    notification: 'movePlaylistItem',
+    playlist,
+  };
+};

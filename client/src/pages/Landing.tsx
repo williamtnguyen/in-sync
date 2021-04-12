@@ -5,7 +5,7 @@ import { SocketContext } from '../App';
 import CreateSessionForm from '../components/CreateSessionForm';
 import JoinSessionForm from '../components/JoinSessionForm';
 
-import { Divider, Tabs, Form, Input, Button } from 'antd';
+import { Divider, Tabs } from 'antd';
 import { VideoCameraAddOutlined } from '@ant-design/icons';
 import landingStyles from '../styles/pages/landing.module.scss';
 const { TabPane } = Tabs;

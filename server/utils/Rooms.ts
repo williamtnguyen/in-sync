@@ -111,21 +111,31 @@ class Rooms {
 
   addVideo(roomID: string, youtubeID: string): void {
     if (this.roomMap[roomID]) {
-      this.roomMap[roomID].playlist.addVideo(youtubeID);
+      this.roomMap[roomID].playlist.addVideoToTail(youtubeID);
     }
   }
 
-  deleteVideo(roomID: string, youtubeID: string): void {
+  deleteVideo(roomID: string, videoIndex: number): void {
     if (this.roomMap[roomID]) {
-      this.roomMap[roomID].playlist.deleteVideo(youtubeID);
+      this.roomMap[roomID].playlist.deleteVideoAtIndex(videoIndex);
     }
   }
 
-  changeVideo(roomID: string, youtubeID: string): void {
+  changeVideo(roomID: string, videoIndex: number): string {
     if (this.roomMap[roomID]) {
+      const youtubeID = this.roomMap[roomID].playlist.getYoutubeIDAtIndex(
+        videoIndex
+      );
       this.setVideoLink(roomID, youtubeID);
-      this.roomMap[roomID].playlist.deleteVideo(youtubeID);
+
+      return youtubeID;
+    } else {
+      throw new Error('Room with this ID does not exist');
     }
+  }
+
+  moveVideo(roomID: string, oldIndex: number, newIndex: number): void {
+    this.roomMap[roomID].playlist.moveVideoToIndex(oldIndex, newIndex);
   }
 
   getPlaylistVideoIds(roomId: string): string[] {

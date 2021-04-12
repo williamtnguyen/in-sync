@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useContext,
-  ChangeEvent,
-  FormEvent,
-} from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 import { createConnection, roomSocketEvents } from '../utils/socket-client';
 import { SocketContext } from '../App';
@@ -16,7 +10,7 @@ import Chat from '../components/chat/Chat';
 import Playlist from '../components/Playlist';
 import RoomParticipants from '../components/RoomParticipants';
 
-import { Row, Col } from 'antd';
+import { Row, Col, Modal, Form, Input, Button } from 'antd';
 import roomStyles from '../styles/pages/room.module.scss';
 
 type LocationState = {
@@ -51,10 +45,8 @@ const Room = ({ location, match }: RoomProps & any) => {
       ? [{ id: clientId, name: clientDisplayName }]
       : []
   );
-  const [displayName, setDisplayName] = useState(clientDisplayName);
 
   const [enterDisplayName, setEnterDisplayName] = useState(false);
-  const [displayNameInput, setDisplayNameInput] = useState('');
 
   const [socket, setSocket] = useState(location.socket ? location.socket : {});
 
@@ -130,42 +122,37 @@ const Room = ({ location, match }: RoomProps & any) => {
     });
   };
 
-  const handleInputChange = (event: ChangeEvent) => {
-    const element = event.target as HTMLInputElement;
-    setDisplayNameInput(element.value);
-  };
-
-  const handleFormSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-
-    setDisplayName(displayNameInput);
+  const handleFormSubmit = (displayNameInput: string) => {
     setClientDisplayName(displayNameInput);
     setEnterDisplayName(false);
   };
 
   return (
     <div className={`${roomStyles.root} container`}>
-      {/* TODO: make this a modal */}
       {enterDisplayName ? (
-        <div className="card mb-5">
-          <div className="card-body">
-            <form onSubmit={(event) => handleFormSubmit(event)}>
-              <h3 className="mb-3">Enter display name to join session</h3>
-              <div className="form-group">
-                <label htmlFor="createDisplayName">Display Name</label>
-                <input
-                  type="text"
-                  className="form-control mb-3"
-                  id="createDisplayName"
-                  onChange={handleInputChange}
-                />
-                <button type="submit" className="btn btn-warning">
-                  Join Session
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal
+          title="Enter a display name to join the session"
+          visible
+          closable={false}
+          centered
+          footer={null}
+        >
+          <Form
+            layout="vertical"
+            onFinish={(fieldValues) =>
+              handleFormSubmit(fieldValues.displayNameInput)
+            }
+          >
+            <Form.Item name="displayNameInput">
+              <Input placeholder="Enter a display name..." />
+            </Form.Item>
+            <Form.Item>
+              <Button type="primary" shape="round" htmlType="submit">
+                Submit
+              </Button>
+            </Form.Item>
+          </Form>
+        </Modal>
       ) : (
         <Row gutter={16} className={roomStyles.main__content}>
           <Col sm={16} className={roomStyles.left__col}>

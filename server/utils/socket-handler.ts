@@ -5,6 +5,7 @@ import {
   createPlaylistItem,
   createUserMessage,
   deletePlaylistItem,
+  movePlaylistItem,
 } from './socket-notifier';
 
 const socketHandler = (io: WebSocketServer) => {
@@ -89,11 +90,11 @@ const socketHandler = (io: WebSocketServer) => {
       }
     });
 
-    socket.on('deletePlaylistItem', (youtubeId) => {
+    socket.on('deletePlaylistItem', (videoIndex: number) => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
 
-      Rooms.deleteVideo(roomId, youtubeId);
+      Rooms.deleteVideo(roomId, videoIndex);
       const newPlaylist: string[] = Rooms.getPlaylistVideoIds(roomId);
 
       if (client) {
@@ -101,16 +102,26 @@ const socketHandler = (io: WebSocketServer) => {
       }
     });
 
-    socket.on('changeVideo', (youtubeId) => {
+    socket.on('changeVideo', (videoIndex: number) => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
+      const youtubeID = Rooms.changeVideo(roomId, videoIndex);
       io.to(roomId).emit(
         'notifyClient',
         createClientNotifier('CHANGE_VIDEO', {
-          youtubeID: youtubeId,
+          youtubeID,
         })
       );
-      Rooms.changeVideo(roomId, youtubeId);
+    });
+
+    socket.on('insertVideoAtIndex', ({ oldIndex, newIndex }) => {
+      const client = Rooms.getClient(socket.id);
+      const roomId = Rooms.getClientRoomId(client.id);
+
+      Rooms.moveVideo(roomId, oldIndex, newIndex);
+      const newPlaylist: string[] = Rooms.getPlaylistVideoIds(roomId);
+
+      io.to(roomId).emit('notifyClient', movePlaylistItem(newPlaylist));
     });
 
     socket.on('disconnect', () => {

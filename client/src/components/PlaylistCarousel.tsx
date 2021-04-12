@@ -7,7 +7,7 @@ import type {
   DraggableProvided,
   DraggableStateSnapshot,
 } from 'react-beautiful-dnd';
-import { Button, Tooltip } from 'antd';
+import { Button } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 
 import carouselStyles from '../styles/components/playlist-carousel.module.scss';
@@ -23,13 +23,19 @@ const PlaylistCarousel = ({
   playlist: string[];
   renderTitle: (youtubeID: string) => string;
   renderImgURL: (youtubeID: string) => string;
-  onDeleteVideo: (youtubeID: string) => void;
+  onDeleteVideo: (videoIndex: number) => void;
 }) => {
+  // Emits to backend and all other n-1 clients of new video positioning
   const onDragEnd = (emission: DropResult) => {
     if (!emission.destination) return;
 
     const { source, destination } = emission;
-    console.log(source, destination);
+    if (source.index === destination.index) return;
+
+    socket.emit('insertVideoAtIndex', {
+      oldIndex: source.index,
+      newIndex: destination.index,
+    });
   };
 
   return (
@@ -57,34 +63,26 @@ const PlaylistCarousel = ({
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    className={carouselStyles.playlist__item}
+                    className={
+                      snapshot.isDragging
+                        ? `${carouselStyles.playlist__item} ${carouselStyles['playlist__item--dragging']}`
+                        : carouselStyles.playlist__item
+                    }
                   >
-                    <Tooltip
-                      placement="topLeft"
-                      title={renderTitle(youtubeId)}
-                      color="black"
+                    <img src={renderImgURL(youtubeId)} alt="video thumbnail" />
+                    <Button
+                      shape="circle"
+                      className={carouselStyles.delete__btn}
+                      onClick={() => onDeleteVideo(index)}
                     >
-                      <div>
-                        <img
-                          src={renderImgURL(youtubeId)}
-                          alt="video thumbnail"
-                        />
-                        <Button
-                          shape="circle"
-                          className={carouselStyles.delete__btn}
-                          onClick={() => onDeleteVideo(youtubeId)}
-                        >
-                          <CloseOutlined
-                            className={carouselStyles.close__icon}
-                          />
-                        </Button>
-                      </div>
-                    </Tooltip>
+                      <CloseOutlined className={carouselStyles.close__icon} />
+                    </Button>
                   </div>
                 )}
               </Draggable>
             ))}
-            {/* React element that is used to increase available space in a Droppable during a drag when needed */}
+            {/* React element that is used to increase available space in a 
+                Droppable during a drag when needed */}
             {provided.placeholder}
           </div>
         )}

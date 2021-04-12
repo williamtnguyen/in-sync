@@ -26,6 +26,12 @@ export const clientReducer = (state: any, action: any) => {
         playlist: action.playlist,
       };
 
+    case ClientStates.MOVE_VIDEO:
+      return {
+        ...state,
+        playlist: action.playlist,
+      };
+
     case ClientStates.UPDATE_CHAT_MESSAGES:
       const { client, clientId, message } = action.data;
       return {

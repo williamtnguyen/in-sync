@@ -1,7 +1,16 @@
 const LinkedList = require('linked-list');
 
-export interface PlaylistMap {
-  [youtubeID: string]: typeof LinkedList.Item;
+class VideoNode extends LinkedList.Item {
+  public youtubeID: string;
+
+  constructor(youtubeID: string) {
+    super();
+    this.youtubeID = youtubeID;
+  }
+}
+
+interface PlaylistMap {
+  [videoIndex: number]: VideoNode;
 }
 
 /**
@@ -10,32 +19,66 @@ export interface PlaylistMap {
  */
 export class Playlist {
   private list: typeof LinkedList;
-  private map: PlaylistMap;
+  private map: PlaylistMap; // maps array position to node pointer
 
   constructor() {
     this.list = new LinkedList();
-    this.map = new Map<string, typeof LinkedList.Item>(); // maps array position to node pointer
+    this.map = {};
   }
 
-  addVideo(youtubeID: string): void {
-    const node = new LinkedList.Item(youtubeID);
+  getYoutubeIDAtIndex(videoIndex: number): string {
+    const node: VideoNode = this.map[videoIndex];
+    return node.youtubeID;
+  }
+
+  addVideoToTail(youtubeID: string): void {
+    const node = new VideoNode(youtubeID);
 
     this.list.append(node);
-    this.map.set(youtubeID, node);
+    this.map[this.list.size - 1] = node;
   }
 
-  deleteVideo(youtubeID: string): void {
-    const node: typeof LinkedList.Item = this.map.get(youtubeID);
-
+  // O(n) operation because map reassignment
+  deleteVideoAtIndex(videoIndex: number): void {
+    const node: VideoNode = this.map[videoIndex];
     if (node) {
+      const priorLength = this.list.size;
       node.detach();
-      this.map.delete(youtubeID);
+      delete this.map[videoIndex];
+
+      for (let i = videoIndex + 1; i < priorLength; i += 1) {
+        this.map[i - 1] = this.map[i];
+      }
+      if (priorLength > 1) {
+        delete this.map[priorLength - 1];
+      }
+    } else {
+      throw new Error('Node at index was not found');
     }
+  }
+
+  // O(n) operation because map reassignment
+  moveVideoToIndex(oldIndex: number, newIndex: number): void {
+    // Remove node from oldIndex
+    const movedNode: VideoNode = this.map[oldIndex];
+    movedNode.detach();
+
+    // Insert node at newIndex
+    const neighbor: VideoNode = this.map[newIndex];
+    if (oldIndex < newIndex) {
+      neighbor.append(movedNode);
+    } else {
+      neighbor.prepend(movedNode);
+    }
+    this.list.toArray().map((node: VideoNode, index: number) => {
+      this.map[index] = node;
+    });
   }
 
   // O(n) transformation: figure out if we can do this faster
   getPlaylistIds(): string[] {
-    return [...this.map.keys()];
+    const nodeArray = this.list.toArray();
+    return nodeArray.map((node: VideoNode) => node.youtubeID);
   }
 }
 

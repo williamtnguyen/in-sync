@@ -12,7 +12,9 @@
     "object-literal-shorthand": true,
     "object-shorthand-properties-first": false,
     "no-var-requires": false,
-    "variable-name": false
+    "variable-name": false,
+    "max-classes-per-file": false,
+    "no-else-after-return": false
   },
   "rulesDirectory": []
 }

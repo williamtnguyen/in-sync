@@ -5,7 +5,6 @@
   overflow-x: scroll;
   position: relative;
   padding: 10px 0px 0 0px;
-
   /* make scrollbar transparent */
   &::-webkit-scrollbar {
     width: 0;
@@ -15,7 +14,7 @@
 }
 
 .playlist__item {
-  display: inline-block;
+  display: inline-flex;
   width: 150px;
   background-color: #e8e8e8;
   border-radius: 5px;
@@ -28,12 +27,11 @@
   }
 
   .delete__btn {
-    position: absolute;
     min-width: 15px;
     height: 15px;
-    top: 0;
+    top: -20px;
     padding: 0;
-    background: lightgray;
+    background: lightgrey;
     border: 1px solid grey;
 
     &:hover,
@@ -45,5 +43,9 @@
   .close__icon svg {
     height: 10px;
     transform: translateY(-60%);
+  }
+
+  &--dragging {
+    background-color: #b8b8b8;
   }
 }

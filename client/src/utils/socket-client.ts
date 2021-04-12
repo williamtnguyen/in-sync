@@ -102,6 +102,13 @@ export const roomSocketEvents = (
         });
         break;
 
+      case 'movePlaylistItem':
+        clientDispatch({
+          type: ClientStates.MOVE_VIDEO,
+          playlist: data.playlist,
+        });
+        break;
+
       default:
         break;
     }

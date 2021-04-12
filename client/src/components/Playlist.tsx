@@ -26,7 +26,7 @@ const Playlist = ({ socket }: props) => {
   }
 
   function renderImgURL(youtubeID: string) {
-    const imgURL = `http://img.youtube.com/vi/${youtubeID}/0.jpg`;
+    const imgURL = `http://img.youtube.com/vi/${youtubeID}/maxresdefault.jpg`;
     return imgURL;
   }
 
@@ -42,14 +42,12 @@ const Playlist = ({ socket }: props) => {
   }
 
   function onNextVideo() {
-    const youtubeID = clientData.playlist[0];
-    socket.emit('changeVideo', youtubeID);
-
-    onDeleteVideo(youtubeID);
+    socket.emit('changeVideo', 0);
+    onDeleteVideo(0);
   }
 
-  function onDeleteVideo(youtubeID: string) {
-    socket.emit('deletePlaylistItem', youtubeID);
+  function onDeleteVideo(videoIndex: number) {
+    socket.emit('deletePlaylistItem', videoIndex);
   }
 
   return (
