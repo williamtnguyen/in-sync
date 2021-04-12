@@ -1,36 +1,38 @@
-describe('The Landing Page', () => {
+describe('Landing Page', () => {
   it('successfully loads', () => {
     cy.visit('http://localhost:3000') 
   })
 })
 
+
 describe("Create room form", () => {
   it("Can fill the form", () => {
     cy.visit('/')
-    cy.get("form");
+    cy.get('#rc-tabs-0-tab-Create').click()
 
-    cy.get('input[id="createDisplayName"]')
+    cy.get('input[id="displayName"]')
       .type("Molly")
-      .should("have.value","Molly");
+      .should("have.value","Molly")
     
-    cy.get('input[id="setYoutubeLink"]')
-    .type("https://www.youtube.com/watch?v=0ZOhJe_7GrE")
-    .should("have.value","https://www.youtube.com/watch?v=0ZOhJe_7GrE");
-  });
-});
+  })
+})
 
-describe("Join exisitng room form", () => {
-  it("Can fill the form", () => {
+describe("Join exisiting room form", () => {
+
+  beforeEach(() => {
     cy.visit('/')
-    cy.get("form");
+    cy.get('#rc-tabs-0-tab-Join').click()
+  })
 
-    cy.get('input[id="joinRoomId"]')
+  it("Can fill the roomId", () => {
+    cy.get('input[id="roomId"]')
       .type("12345")
-      .should("have.value","12345");
-    
-    cy.get('input[id="joinDisplayName"]')
+      .should("have.value","12345")
+  })
+  
+  it("Can fill the displayName", () => {
+    cy.get('input[id="displayName"]').last()
     .type("Molly")
-    .should("have.value","Molly");
-  });
-});
-
+    .should("have.value","Molly")
+  })
+})

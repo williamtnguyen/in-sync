@@ -28,13 +28,13 @@ const PlaylistHeader = ({
           <Input placeholder="Enter a YouTube link..." />
         </Form.Item>
         <Form.Item>
-          <Button shape="round" htmlType="submit">
+          <Button id="add" shape="round" htmlType="submit">
             <PlusOutlined />
             Add
           </Button>
         </Form.Item>
       </Form>
-      <Button shape="round" size="small" onClick={onNextVideo}>
+      <Button id="next" shape="round" size="small" onClick={onNextVideo}>
         <StepForwardOutlined />
         Next
       </Button>
