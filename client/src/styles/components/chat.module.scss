@@ -1,0 +1,19 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  border-radius: 5px;
+  border: 1px solid lightgrey;
+  box-shadow: 3px 3px 5px #eee;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.message__input {
+  width: 75%;
+}
+
+.send__btn {
+  margin-right: 0 !important;
+}

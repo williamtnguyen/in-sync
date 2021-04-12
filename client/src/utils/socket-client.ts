@@ -6,9 +6,7 @@ const socketServerDomain = 'http://localhost:5000';
 // Establishes a WebSocket connection and resolves the socket object
 export const createConnection = (
   displayName: string,
-  roomId?: string,
-  oldClientId?: string,
-  youtubeID?: string
+  roomId?: string
 ): Promise<SocketIOClient.Socket> => {
   return new Promise((resolve) => {
     const socket = io(socketServerDomain);
@@ -19,8 +17,8 @@ export const createConnection = (
         // if a clientID is present in sessionStorage, use it again
         clientId: socket.id,
         clientName: displayName,
-        youtubeID,
       };
+
       socket.emit('join', clientData);
       resolve(socket);
     });
@@ -101,6 +99,13 @@ export const roomSocketEvents = (
         clientDispatch({
           type: ClientStates.CHANGE_VIDEO,
           data,
+        });
+        break;
+
+      case 'movePlaylistItem':
+        clientDispatch({
+          type: ClientStates.MOVE_VIDEO,
+          playlist: data.playlist,
         });
         break;
 

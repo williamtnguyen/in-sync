@@ -22,7 +22,9 @@
     "jsx-no-lambda": false,
     "no-trailing-whitespace": [true, "ignore-comments"],
     "align": false,
-    "brace-style": false
+    "brace-style": false,
+    "no-duplicate-imports": false,
+    "no-shadowed-variable": false
   },
   "rulesDirectory": []
 }

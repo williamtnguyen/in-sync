@@ -1,0 +1,18 @@
+.root {
+  padding: 10px 5px;
+  border: 1px solid lightgrey;
+  border-radius: 5px;
+  box-shadow: 3px 3px 5px #eee;
+}
+
+.participants__container {
+  display: flex;
+}
+
+.participant__avatar {
+  width: 5rem;
+
+  p {
+    margin-bottom: 0;
+  }
+}

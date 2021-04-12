@@ -1,11 +1,16 @@
 import React, { Dispatch, createContext, useReducer } from 'react';
 import { clientReducer } from '../reducers/clientReducer';
 
+interface Message {
+  client: string;
+  clientId: string;
+  message: string;
+}
 interface IinitialState {
   youtubeID: string;
-  clientList: [];
-  messages: [];
-  playlist: [];
+  clientList: any[];
+  messages: Message[];
+  playlist: string[];
 }
 
 interface IclientContext {
