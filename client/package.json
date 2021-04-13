@@ -10,6 +10,8 @@
     "@types/node": "^12.12.67",
     "@types/react": "^16.9.53",
     "bootstrap": "^4.5.3",
+    "mediasoup": "^3.7.0",
+    "mediasoup-client": "^3.6.29",
     "react": "^16.13.1",
     "react-bootstrap": "^1.4.3",
     "react-dom": "^16.13.1",

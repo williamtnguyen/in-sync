@@ -16,6 +16,7 @@ import { VideoContext } from '../contexts/videoContext';
 import { ClientStates } from '../utils/enums';
 import Chat from './chat/Chat';
 import Playlist from './Playlist';
+import { MediasoupPeer } from './MediasoupPeer';
 
 type LocationState = {
   hostId: string;
@@ -50,6 +51,7 @@ const Room = ({ location, match }: RoomProps & any) => {
       : []
   );
   const [displayName, setDisplayName] = useState(clientDisplayName);
+  const [mediasoupPeer, setMediasoupPeer] = useState<MediasoupPeer>();
 
   const [enterDisplayName, setEnterDisplayName] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState('');
@@ -62,6 +64,7 @@ const Room = ({ location, match }: RoomProps & any) => {
     clientDispatch,
     videoDispatch,
   };
+  const remoteAudiosDiv = document.getElementById('remoteAudios');
 
   useEffect(() => {
     connectClient();
@@ -78,6 +81,10 @@ const Room = ({ location, match }: RoomProps & any) => {
       updateClientList(location.socket);
       setSocket(location.socket);
       roomSocketEvents(location.socket, dispatches);
+      console.log('Start mediadevice');      
+      await setMediaDevices();
+      console.log('Start mediasoup');      
+      await startMediasoup(location.socket);
     }
     // Joining client or Room host that already made connection and refreshed
     else if (clientId && clientDisplayName) {
@@ -93,9 +100,15 @@ const Room = ({ location, match }: RoomProps & any) => {
       updatePlaylist(socketConnection);
       setSocket(socketConnection);
       roomSocketEvents(socketConnection, dispatches);
+      console.log('Start mediadevice');      
+      await setMediaDevices();
+      console.log('Start mediasoup');      
+      await startMediasoup(socketConnection);
     }
     // Joining clients: inputted displayName
     else if (!clientId && clientDisplayName) {
+      console.log('display name was inputted');
+      
       const { roomId } = match.params;
       const socketConnection = await createConnection(
         clientDisplayName,
@@ -108,6 +121,10 @@ const Room = ({ location, match }: RoomProps & any) => {
       updatePlaylist(socketConnection);
       setSocket(socketConnection);
       roomSocketEvents(socketConnection, dispatches);
+      console.log('Start mediadevice');      
+      await setMediaDevices();
+      console.log('Start mediasoup');
+      await startMediasoup(socketConnection);
     }
     // Joining client from direct URL, prompt for displayName
     else if (!clientId && !clientDisplayName) {
@@ -131,6 +148,33 @@ const Room = ({ location, match }: RoomProps & any) => {
     });
   };
 
+  const setMediaDevices = async () => {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    devices.forEach(device => {
+      let selectedAudioElem = null;
+      if ('audioinput' === device.kind) {
+        selectedAudioElem = document.getElementById('audioSelect') as HTMLSelectElement;
+      }
+      if(!selectedAudioElem) 
+        return;
+  
+      let option = document.createElement('option') as HTMLOptionElement;
+      option.value = device.deviceId;
+      option.innerText = device.label;
+      selectedAudioElem.appendChild(option);
+    });
+  }
+
+  const startMediasoup = async (connectingSocket: SocketIOClient.Socket) => {
+    console.log('creating mediasoup peer');
+    let peer = new MediasoupPeer(connectingSocket, remoteAudiosDiv);
+    setMediasoupPeer(peer);
+    await peer.init();
+    let audioSelectElem = document.getElementById('audioSelect') as HTMLSelectElement;
+    await peer.produce('audioType', audioSelectElem?.value);
+    console.log('finished creating mediasoup peer');
+  }
+
   const handleInputChange = (event: ChangeEvent) => {
     const element = event.target as HTMLInputElement;
     setDisplayNameInput(element.value);
@@ -144,6 +188,12 @@ const Room = ({ location, match }: RoomProps & any) => {
     setEnterDisplayName(false);
 
   };
+
+  const mutePeer = async () => {
+    console.log('mediasoup peer: ', mediasoupPeer);
+    if (mediasoupPeer === undefined) throw new Error('mediasoup peer is undefined');
+    mediasoupPeer.closeProducer();
+  }
 
   return (
     <div
@@ -177,6 +227,10 @@ const Room = ({ location, match }: RoomProps & any) => {
         </div>
       ) : (
         <div className="text-center">
+          <div id="remoteAudios"></div>
+          audio: <select id="audioSelect" style={{marginBottom: "25px", marginRight: "25px"}}></select>
+          <button onClick={mutePeer}>Mute</button>
+
           <div className="row">
             <div className="col-sm-8">
               <div className="col-sm-12">
