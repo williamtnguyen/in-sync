@@ -1,12 +1,18 @@
 import { Playlist } from './Playlist';
+import { types as mediasoupType } from 'mediasoup';
+const mediasoupConfig = require('../mediasoup-config');
+
+export interface ClientMap {
+  [clientId: string]: string;
+}
 
 export interface Client {
   id: string;
   name: string;
-}
-
-export interface ClientMap {
-  [clientId: string]: string;
+  transports: Map<string, mediasoupType.Transport>;
+  consumers: Map<string, mediasoupType.Consumer>;
+  producers: Map<string, mediasoupType.Producer>;
+  rtpCapabilities: mediasoupType.RtpCapabilities | undefined;
 }
 
 export interface RoomMap {
@@ -14,6 +20,7 @@ export interface RoomMap {
     clients: Client[];
     youtubeID: string;
     playlist: Playlist;
+    router: mediasoupType.Router;
   };
 }
 
@@ -29,12 +36,15 @@ class Rooms {
     this.clientMap = {};
   }
 
-  addRoom(roomId: string, youtubeID: string): void {
+  async addRoom(roomId: string, youtubeID: string, worker: mediasoupType.Worker) {
     if (!this.roomMap[roomId]) {
+      const mediaCodecs = mediasoupConfig.mediasoup.router.codecs;
+      const router = await worker.createRouter({ mediaCodecs });      
       const roomDetails = {
         clients: [],
         youtubeID,
         playlist: new Playlist(),
+        router
       };
       this.roomMap[roomId] = roomDetails;
     }
@@ -50,12 +60,20 @@ class Rooms {
   addClient(roomId: string, clientId: string, clientName: string): void {
     if (this.clientMap[clientId]) {
       return;
-    }
+    }    
     if (this.roomMap[roomId]) {
-      const newClient: Client = { id: clientId, name: clientName };
+      const newClient: Client = { 
+        id: clientId, 
+        name: clientName,
+        transports: new Map(),
+        consumers: new Map(),
+        producers: new Map(),
+        rtpCapabilities: undefined
+      };
       this.roomMap[roomId].clients.push(newClient);
       this.clientMap[clientId] = roomId;
     } else {
+      console.log(roomId);      
       throw new Error('Room with this ID does not exist');
     }
   }
@@ -140,6 +158,166 @@ class Rooms {
 
   getPlaylistVideoIds(roomId: string): string[] {
     return this.roomMap[roomId].playlist.getPlaylistIds();
+  }
+
+  getRtpCapabilities(roomId: string): mediasoupType.RtpCapabilities {
+    return this.roomMap[roomId].router.rtpCapabilities;
+  }
+
+  async createTransport(clientId: string, roomId: string) {
+    const {
+      maxIncomingBitrate,
+      initialAvailableOutgoingBitrate,
+      listenIps
+    } = mediasoupConfig.mediasoup.webRtcTransport;
+    const router = this.roomMap[roomId].router;
+
+    const transport = await router.createWebRtcTransport({
+      listenIps,
+      enableUdp: true,
+      enableTcp: true,
+      preferUdp: true,
+      initialAvailableOutgoingBitrate
+    });
+
+    if (maxIncomingBitrate) 
+      await transport.setMaxIncomingBitrate(maxIncomingBitrate);
+
+    transport.on('dtlsstatechange', (dtlsState) => {
+      if (dtlsState === 'closed') transport.close();
+    });
+
+    transport.on('close', () => {});
+    this.getClient(clientId).transports.set(transport.id, transport);
+    return {
+      id: transport.id,
+      iceParams: transport.iceParameters,
+      iceCandidates: transport.iceCandidates,
+      dtlsParameters: transport.dtlsParameters
+    };
+  }
+
+  async addTransport(
+    client: Client,
+    transportId: string,
+    dtlsParameters: mediasoupType.DtlsParameters
+  ) {
+    if (!client.transports.has(transportId)) return;    
+    await client.transports.get(transportId)?.connect({
+      dtlsParameters
+    });
+  }
+
+  async addProducer(
+    producerTransportId: string,
+    rtpParameters: mediasoupType.RtpParameters, 
+    mediaType: mediasoupType.MediaKind,
+    client: Client
+  ) {
+    return new Promise(async (resolve) => {
+      let producer = await this.createProducer(
+        client,
+        producerTransportId,
+        rtpParameters,
+        mediaType
+      );
+      resolve(producer.id);
+    })
+  }
+
+  async createProducer(
+    client: Client,
+    producerTransportId: string,
+    rtpParameters: mediasoupType.RtpParameters, 
+    mediaType: mediasoupType.MediaKind
+  ) {
+    let producer = await client.transports.get(producerTransportId)?.produce({
+      kind: mediaType,
+      rtpParameters
+    });
+
+    if (producer === undefined) throw new Error('Producer is undefined');
+    client.producers.set(producer.id, producer);
+
+    producer.on('closeTransport', () => {
+      if (producer !== undefined) {
+        producer.close();
+        client.producers.delete(producer.id);
+      }
+    });
+
+    return producer;
+  }
+
+  async addConsumer(
+    client: Client,
+    consumerTransportId: string, 
+    producerId: string,
+    rtpCapabilities: mediasoupType.RtpCapabilities
+  ) {
+    const roomId = this.getClientRoomId(client.id);
+    const room = this.getRoom(roomId);
+    if (!room.router.canConsume({ producerId, rtpCapabilities })) return;
+
+    let consumer: mediasoupType.Consumer | undefined = await this.createConsumer(
+      client,
+      consumerTransportId,
+      producerId,
+      rtpCapabilities
+    );
+
+    if (consumer === undefined) throw new Error('Consumer is undefined');
+
+    client.consumers.set(consumer.id, consumer);
+
+    consumer.on('transportclose', () => {
+      if (consumer === undefined) throw new Error('Consumer is undefined');
+      client.consumers.delete(consumer.id);
+    });
+
+    return {
+      consumer,
+      consumerParams: {
+        producerId,
+        consumerId: consumer.id,
+        mediaKind: consumer.kind,
+        rtpParameters: consumer.rtpParameters,
+        consumerType: consumer.type,
+        producerPaused: consumer.producerPaused
+      }
+    }
+  }
+
+  async createConsumer(
+    client: Client,
+    consumerTransportId: string, 
+    producerId: string,
+    rtpCapabilities: mediasoupType.RtpCapabilities
+  ) {
+    let consumerTransport = client.transports.get(consumerTransportId);
+    let consumer = await consumerTransport?.consume({
+      producerId,
+      rtpCapabilities,
+      paused: false
+    });
+
+    if (consumer?.type === 'simulcast') {
+      await consumer.setPreferredLayers({
+        spatialLayer: 2,
+        temporalLayer: 2
+      });
+    }
+
+    return consumer;
+  }
+
+  closeTransports(client: Client) {
+    client.transports.forEach(transport => transport.close());
+  }
+
+  closeProducer(client: Client, producerId: string) {
+    client.producers.get(producerId)?.close();
+    client.producers.delete(producerId);
   }
 }
 
