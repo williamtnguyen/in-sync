@@ -64,6 +64,7 @@ const Room = ({ location, match }: RoomProps & any) => {
     clientDispatch,
     videoDispatch,
   };
+  const [ isMuted, setIsMuted ] = useState(false);
   const remoteAudiosDiv = document.getElementById('remoteAudios');
 
   useEffect(() => {
@@ -192,7 +193,15 @@ const Room = ({ location, match }: RoomProps & any) => {
   const mutePeer = async () => {
     console.log('mediasoup peer: ', mediasoupPeer);
     if (mediasoupPeer === undefined) throw new Error('mediasoup peer is undefined');
-    mediasoupPeer.closeProducer();
+    if (!isMuted) {
+      mediasoupPeer.closeProducer();
+      setIsMuted(true);
+    } 
+    else {
+      await setMediaDevices();
+      await startMediasoup(socket);
+      setIsMuted(false);
+    }
   }
 
   return (
@@ -229,8 +238,8 @@ const Room = ({ location, match }: RoomProps & any) => {
         <div className="text-center">
           <div id="remoteAudios"></div>
           audio: <select id="audioSelect" style={{marginBottom: "25px", marginRight: "25px"}}></select>
-          <button onClick={mutePeer}>Mute</button>
-
+          <button onClick={mutePeer}>{isMuted ? 'Unmute' : 'Mute'}</button>
+          
           <div className="row">
             <div className="col-sm-8">
               <div className="col-sm-12">
