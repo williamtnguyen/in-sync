@@ -3,6 +3,8 @@ import YouTube from 'react-youtube';
 import { VideoContext } from '../contexts/videoContext';
 import { VideoStates } from '../utils/enums';
 
+import videoStyles from '../styles/components/video.module.scss';
+
 type videoProps = {
   youtubeID: string;
   socket: SocketIOClient.Socket;
@@ -75,7 +77,7 @@ const Video = ({ youtubeID, socket }: videoProps) => {
   }
 
   return (
-    <div>
+    <div className={videoStyles.video__container}>
       {youtubeID ? (
         <YouTube
           videoId={youtubeID}

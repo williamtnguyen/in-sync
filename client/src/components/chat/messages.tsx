@@ -1,7 +1,7 @@
 import React, { useEffect, createRef } from 'react';
 
 export interface MessagesProps {
-  messages: [];
+  messages: Message[];
 }
 
 interface MessageProps {
@@ -60,11 +60,13 @@ const Messages = (props: MessagesProps) => {
         overflowY: 'auto',
       }}
     >
-    {messages && messages.length > 0 && messages.map((message: Message) => (
-        <Message user={message.client} key={message.clientId}>
-          {message.message}
-        </Message>
-      ))}
+      {messages &&
+        messages.length > 0 &&
+        messages.map((message: Message) => (
+          <Message user={message.client} key={message.clientId}>
+            {message.message}
+          </Message>
+        ))}
 
       <div className="temp" ref={messageEnd} />
     </div>
