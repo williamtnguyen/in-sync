@@ -9,7 +9,7 @@ import { ClientStates } from '../utils/enums';
 import Chat from '../components/chat/Chat';
 import Playlist from '../components/Playlist';
 import RoomParticipants from '../components/RoomParticipants';
-import { MediasoupPeer } from '../components/MediasoupPeer';
+import { MediasoupPeer } from '../utils/MediasoupPeer';
 
 import { Row, Col, Modal, Form, Input, Button } from 'antd';
 import roomStyles from '../styles/pages/room.module.scss';

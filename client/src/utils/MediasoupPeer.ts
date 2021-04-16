@@ -1,4 +1,4 @@
-import { mediasoupEvent } from '../utils/helpers';
+import { mediasoupEvent } from './helpers';
 import { Device, types as mediasoupType } from 'mediasoup-client';
 
 export class MediasoupPeer {
