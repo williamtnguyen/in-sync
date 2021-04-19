@@ -9,9 +9,11 @@ import { ClientStates } from '../utils/enums';
 import Chat from '../components/chat/Chat';
 import Playlist from '../components/Playlist';
 import RoomParticipants from '../components/RoomParticipants';
+import { MediasoupPeer } from '../utils/MediasoupPeer';
 
-import { Row, Col, Modal, Form, Input, Button } from 'antd';
+import { Row, Col, Modal, Form, Input, Button, Select } from 'antd';
 import roomStyles from '../styles/pages/room.module.scss';
+const { Option } = Select;
 
 type LocationState = {
   hostId: string;
@@ -28,6 +30,11 @@ type RoomProps = RouteComponentProps<MatchParams, {}, LocationState>;
 interface Client {
   id: string;
   name: string;
+}
+
+interface AudioDevices {
+  deviceId: string, 
+  deviceName: string
 }
 
 const Room = ({ location, match }: RoomProps & any) => {
@@ -47,8 +54,15 @@ const Room = ({ location, match }: RoomProps & any) => {
   );
 
   const [enterDisplayName, setEnterDisplayName] = useState(false);
+  const [ isMuted, setIsMuted ] = useState(false);
 
   const [socket, setSocket] = useState(location.socket ? location.socket : {});
+  const [mediasoupPeer, setMediasoupPeer] = useState<MediasoupPeer>();
+  const [audioDevices, setAudioDevices] = useState<AudioDevices[]>([]);
+  const [selectedAudioDevice, setSelectedAudioDevice] = useState<AudioDevices>({
+    deviceId: '', 
+    deviceName: ''
+  });
 
   const { clientDispatch, clientData } = useContext(ClientContext);
   const { videoDispatch } = useContext(VideoContext);
@@ -56,9 +70,11 @@ const Room = ({ location, match }: RoomProps & any) => {
     clientDispatch,
     videoDispatch,
   };
+  const remoteAudiosDiv = document.getElementById('remoteAudios');
 
   useEffect(() => {
     connectClient();
+    setMediaDevices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientDisplayName]);
 
@@ -72,7 +88,8 @@ const Room = ({ location, match }: RoomProps & any) => {
       });
       updateClientList(location.socket);
       setSocket(location.socket);
-      roomSocketEvents(location.socket, dispatches);
+      roomSocketEvents(location.socket, dispatches);     
+      await startAudioCall(location.socket);
     }
     // Joining client or Room host that already made connection and refreshed
     else if (clientId && clientDisplayName) {
@@ -85,7 +102,8 @@ const Room = ({ location, match }: RoomProps & any) => {
       updateClientList(socketConnection);
       updatePlaylist(socketConnection);
       setSocket(socketConnection);
-      roomSocketEvents(socketConnection, dispatches);
+      roomSocketEvents(socketConnection, dispatches);      
+      await startAudioCall(socketConnection);
     }
     // Joining clients: inputted displayName
     else if (!clientId && clientDisplayName) {
@@ -99,6 +117,7 @@ const Room = ({ location, match }: RoomProps & any) => {
       updatePlaylist(socketConnection);
       setSocket(socketConnection);
       roomSocketEvents(socketConnection, dispatches);
+      await startAudioCall(socketConnection);
     }
     // Joining client from direct URL, prompt for displayName
     else if (!clientId && !clientDisplayName) {
@@ -127,6 +146,59 @@ const Room = ({ location, match }: RoomProps & any) => {
     setEnterDisplayName(false);
   };
 
+  const startAudioCall = async (socket: SocketIOClient.Socket) => {
+    await setMediaDevices();
+    await startMediasoup(socket);
+  }
+
+  const setMediaDevices = async () => {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    let newAudioDevices: AudioDevices[] = [];    
+    devices.forEach(device => {
+      newAudioDevices.push({
+        deviceId: device.deviceId,
+        deviceName: device.label
+      });
+    });
+    console.log('new audio devices: ', newAudioDevices);
+    
+    setAudioDevices(newAudioDevices);
+    setSelectedAudioDevice(newAudioDevices[0]);
+  }
+
+  const startMediasoup = async (connectingSocket: SocketIOClient.Socket) => {
+    console.log('creating mediasoup peer');
+    // if (selectedAudioDevice.deviceId === '') throw new Error('No audio device id');
+    let peer = new MediasoupPeer(connectingSocket, remoteAudiosDiv);
+    setMediasoupPeer(peer);
+    await peer.init();
+    await peer.produce('audioType', selectedAudioDevice.deviceName);
+    console.log('finished creating mediasoup peer');
+  }
+
+  const handleAudioSelect = async (device: any) => {   
+    console.log('selected device: ', device);
+     
+    setSelectedAudioDevice({
+      deviceId: device.value,
+      deviceName: device
+    });
+    if (mediasoupPeer !== undefined)
+      await mediasoupPeer.produce('audioType', device);
+  }
+
+  const mutePeer = async () => {
+    if (mediasoupPeer !== undefined) {
+      mediasoupPeer.closeProducer();
+      setMediasoupPeer(undefined);
+      setIsMuted(true);
+    } 
+    else {
+      await startAudioCall(socket);
+      setIsMuted(false);
+    }
+  }
+
   return (
     <div className={`${roomStyles.root} container`}>
       {enterDisplayName ? (
@@ -154,16 +226,36 @@ const Room = ({ location, match }: RoomProps & any) => {
           </Form>
         </Modal>
       ) : (
-        <Row gutter={16} className={roomStyles.main__content}>
-          <Col sm={16} className={roomStyles.left__col}>
-            <RoomParticipants clients={clients} />
-            <Video youtubeID={clientData.youtubeID} socket={socket} />
-            <Playlist socket={socket} />
-          </Col>
-          <Col sm={8}>
-            <Chat socket={socket} />
-          </Col>
-        </Row>
+        <div>
+            {console.log('selected audio device: ', selectedAudioDevice)}
+            <div id="remoteAudios"></div>
+            {selectedAudioDevice && selectedAudioDevice.deviceName.length > 0 && (
+              <div style={{'marginTop': '4em'}}>
+                <p style={{'display':'inline'}}>audio: </p>
+                <Select 
+                  defaultValue={selectedAudioDevice.deviceName}
+                  onChange={handleAudioSelect}
+                  labelInValue
+                >{
+                  audioDevices.map((audioDevice, index) => (
+                    <Option key={index} value={audioDevice.deviceName}>{audioDevice.deviceName}</Option>  
+                  ))
+                }</Select>
+                <button onClick={mutePeer}>{isMuted ? 'Unmute' : 'Mute'}</button>
+              </div>
+            )}
+
+          <Row gutter={16} className={roomStyles.main__content}>
+            <Col sm={16} className={roomStyles.left__col}>
+              <RoomParticipants clients={clients} />
+              <Video youtubeID={clientData.youtubeID} socket={socket} />
+              <Playlist socket={socket} />
+            </Col>
+            <Col sm={8}>
+              <Chat socket={socket} />
+            </Col>
+          </Row>
+        </div>
       )}
     </div>
   );
