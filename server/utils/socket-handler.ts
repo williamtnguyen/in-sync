@@ -126,6 +126,7 @@ const socketHandler = async (io: WebSocketServer) => {
       // Let peers add client's producer to their list of producers
       const clientPeers = Rooms.getRoom(roomId).clients;
       const peers = clientPeers.filter(peer => socket.id !== peer.id);
+      console.log('peers: ', peers);
       
       for (let peer of peers) {
         io.to(peer.id).emit('newProducers', [{
