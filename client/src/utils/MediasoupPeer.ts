@@ -208,10 +208,10 @@ export class MediasoupPeer {
   produce = async (mediaType: string, deviceId: string) => {
     console.log('start producing');
     
-    if (this.producerId !== undefined) {
-      console.error('producer already exists');
-      return;
-    }
+    // if (this.producerId !== undefined) {
+    //   console.error('producer already exists');
+    //   return;
+    // }
 
     const mediaConstraints = {
       audio: {
