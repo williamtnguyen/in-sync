@@ -7,16 +7,15 @@ const https = require('httpolyglot');
 const fs = require('fs');
 const path = require('path');
 
-const options = {
-  key: fs.readFileSync(path.join(__dirname,'./ssl/key.pem'), 'utf-8'),
-  cert: fs.readFileSync(path.join(__dirname,'./ssl/cert.pem'), 'utf-8'),
-  serveClient: false
-};
+// const options = {
+//   key: fs.readFileSync(path.join(__dirname,'./ssl/key.pem'), 'utf-8'),
+//   cert: fs.readFileSync(path.join(__dirname,'./ssl/cert.pem'), 'utf-8'),
+//   serveClient: false
+// };
 
 const app: Application = express();
-const server: typeof Server = https.createServer(options, app);
-// const server: Server = http.createServer(app);
-// const io: WebSocketServer = socketIo(server, { serveClient: false });
+// const server: typeof Server = https.createServer(options, app);
+const server: Server = http.createServer(app);
 const io: WebSocketServer = socketIo(server, { serveClient: false });
 socketHandler(io);
 

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Avatar } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { Avatar, Button } from 'antd';
+import { AudioMutedOutlined, AudioOutlined, UserOutlined } from '@ant-design/icons';
 
 import participantStyles from '../styles/components/room-participants.module.scss';
 
@@ -9,10 +9,29 @@ interface Client {
   name: string;
 }
 
-const RoomParticipants = ({ clients }: { clients: Client[] }) => {
+const RoomParticipants = ({ 
+  clients, 
+  isMuted, 
+  handleMute 
+}: { 
+  clients: Client[],
+  isMuted: boolean,
+  handleMute: {(): Promise<void>}
+}) => {
   return (
     <div className={participantStyles.root}>
       <h3>Participants ({clients.length})</h3>
+      {isMuted ? (
+        <Button shape='round' size='small' onClick={handleMute}>
+          <AudioMutedOutlined className={participantStyles.participant__muted} />
+          Unmute
+        </Button>
+      ) : (
+        <Button shape='round' size='small' onClick={handleMute}>
+          <AudioOutlined className={participantStyles.participant__unmuted} />
+          Mute
+        </Button>
+      )}
 
       <div className={participantStyles.participants__container}>
         {clients.map((client: Client) => (

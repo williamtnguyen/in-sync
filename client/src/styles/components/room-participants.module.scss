@@ -16,3 +16,16 @@
     margin-bottom: 0;
   }
 }
+
+.participant__muted {
+  color: red;
+}
+
+.participant__unmuted {
+  color: blue;
+}
+
+h3 {
+  display: inline;
+  margin-right: 0.5em;
+}

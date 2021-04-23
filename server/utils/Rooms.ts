@@ -1,8 +1,7 @@
 import { Playlist } from './Playlist';
 import { types as mediasoupType } from 'mediasoup';
 const mediasoupConfig = require('../mediasoup-config');
-import { Server as WebSocketServer } from 'socket.io';
-import { isObject } from 'node:util';
+import { Server as WebSocketServer, Socket } from 'socket.io';
 
 export interface ClientMap {
   [clientId: string]: string;
@@ -47,9 +46,9 @@ class Rooms {
       const mediaCodecs = mediasoupConfig.mediasoup.router.codecs;
       const router = await worker.createRouter({ mediaCodecs });  
       this.audioObserver = await router.createAudioLevelObserver({
-        maxEntries: 1,
-        threshold: -80,
-        interval: 800
+        maxEntries: 100,
+        threshold: -90,
+        interval: 500
       });
       const roomDetails = {
         clients: [],
@@ -198,7 +197,6 @@ class Rooms {
       if (dtlsState === 'closed') transport.close();
     });
 
-    transport.on('close', () => {});
     this.getClient(clientId).transports.set(transport.id, transport);
     return {
       id: transport.id,
@@ -249,7 +247,9 @@ class Rooms {
     });
 
     if (producer === undefined) throw new Error('Producer is undefined');
+    
     client.producers.set(producer.id, producer);
+    console.log('producer size: ', client.producers.size);
 
     producer.on('closeTransport', () => {
       if (producer !== undefined) {
@@ -263,6 +263,7 @@ class Rooms {
 
   async addConsumer(
     io: WebSocketServer,
+    socket: Socket,
     client: Client,
     consumerTransportId: string, 
     producerId: string,
@@ -270,7 +271,10 @@ class Rooms {
   ) {
     const roomId = this.getClientRoomId(client.id);
     const room = this.getRoom(roomId);
-    if (!room.router.canConsume({ producerId, rtpCapabilities })) return;
+
+    if (!room.router.canConsume({ producerId, rtpCapabilities })) {      
+      throw new Error(`Router can\'t consume ${producerId}`);
+    } 
 
     let consumer: mediasoupType.Consumer | undefined = await this.createConsumer(
       client,
@@ -281,16 +285,21 @@ class Rooms {
 
     if (this.audioObserver === undefined) throw new Error('Audio observer is undefined');
     this.audioObserver.addProducer({ producerId });
-    this.setAudioObserverEvents(room, io);
-
+    this.setAudioObserverEvents(room, io, roomId);
+    
     if (consumer === undefined) throw new Error('Consumer is undefined');
-
-    client.consumers.set(consumer.id, consumer);
-
     consumer.on('transportclose', () => {
       if (consumer === undefined) throw new Error('Consumer is undefined');
       client.consumers.delete(consumer.id);
     });
+
+    consumer.on('producerClosed', () => {
+      if (consumer === undefined) throw new Error('Consumer is undefined');
+      client.consumers.delete(consumer.id);
+      io.to(socket.id).emit('consumerClosed', { consumerId: consumer.id });
+    });
+
+    client.consumers.set(consumer.id, consumer);
 
     return {
       consumer,
@@ -303,29 +312,6 @@ class Rooms {
         producerPaused: consumer.producerPaused
       }
     }
-  }
-
-  setAudioObserverEvents(room: Room, io: WebSocketServer) {
-    this.audioObserver?.on('volumes', (volumes) => {
-      
-      const { producer, volume } = volumes[0];
-      console.log(volumes);
-
-      for (const client of room.clients) {
-        io.to(client.id).emit('activeSpeaker', {
-          clientId: producer.appData.clientId,
-          volume: volume
-        });
-      }
-    });
-
-    this.audioObserver?.on('silence', () => {
-      for (const client of room.clients) {
-        io.to(client.id).emit('activeSpeaker', {
-          clientId: null
-        });
-      }
-    });
   }
 
   async createConsumer(
@@ -351,11 +337,38 @@ class Rooms {
     return consumer;
   }
 
+  setAudioObserverEvents(room: Room, io: WebSocketServer, roomId: string) {    
+    this.audioObserver?.on('volumes', (volumes) => {
+      let clientVolumes: {[clientId: string]: number} = {};
+      for (const volume of volumes) {
+        clientVolumes[volume.producer.appData.clientId] = volume.volume;
+      }     
+      // console.log('people are speaking');
+
+      io.to(roomId).emit('activeSpeaker', {
+        clientVolumes,
+        clients: room.clients
+      });
+    });
+
+    this.audioObserver?.on('silence', () => {
+      // console.log('room is silent');
+      
+      io.to(roomId).emit('activeSpeaker', {
+        clientVolumes: null
+      });
+    });
+  }
+
   closeTransports(client: Client) {
     client.transports.forEach(transport => transport.close());
   }
 
-  closeProducer(client: Client, producerId: string) {
+  closeProducer(clientId: string, producerId: string) {
+    console.log('close producer');
+    const client = this.getClient(clientId);
+    
+    if (client.producers.get(producerId) === undefined) throw new Error(`Producer id ${producerId} can\'t be found`);
     client.producers.get(producerId)?.close();
     client.producers.delete(producerId);
   }
