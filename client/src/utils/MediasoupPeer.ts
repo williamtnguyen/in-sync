@@ -24,45 +24,52 @@ export class MediasoupPeer {
 
   // ----------------------------- FUNCTIONS FOR INITIALIZATION -----------------------------
   async init() {
-    console.log('initializing data');
+    // console.log('initializing data');
     await this.initMediasoupData();
     await this.initSocket();
-    console.log('finished initializing data');
+    // console.log('finished initializing data');
   }
 
   initMediasoupData = async () => {
-    console.log('initializing mediasoup data');
+    // console.log('initializing mediasoup data');
     const rtpCapabilities = await mediasoupEvent(this.socket, 'getRtpCapabilities');
     await this.createDevice(rtpCapabilities);
     await this.createProducerTransport();
     await this.createConsumerTransport();
     this.socket.emit('getProducers');
-    console.log('finished initializing mediasoup data');
+    // console.log('finished initializing mediasoup data');
   }
 
   initSocket() {
-    console.log('attaching other socket commands');
+    // console.log('attaching other socket commands');
     this.socket.on('consumerClosed', (
       { consumerId }: { consumerId: string }
     ) => {
-      console.log('closing consumer: ', consumerId);
+      // console.log('closing consumer: ', consumerId);
 
       this.removeConsumer(consumerId); 
 
-      console.log('finished closing consumer\n');
+      // console.log('finished closing consumer\n');
     });
 
     this.socket.on('newProducers', async (
       producerData: { producerId: string }[]
-    ) => {
-      console.log('setting new producers: ', producerData);
-      
+    ) => {      
       for (let { producerId } of producerData) {
         await this.consume(producerId); 
       }
 
-      console.log('finished setting new producers\n', producerData);
+      console.log('new producers set: ', producerData);
     });
+
+    this.socket.on('activeSpeaker', (
+      { clientId, volume }: { clientId: string[], volume?: number }
+    ) => {
+      
+      console.log(clientId);
+      // let speakerAvatar: HTMLElement = document.getElementsByClassName(clientId)[0] as HTMLElement;
+      // speakerAvatar.style.backgroundColor = '#87d068';
+    })
 
     this.socket.on('disconnect', () => {
       this.consumerTransport?.close();
@@ -71,22 +78,22 @@ export class MediasoupPeer {
       this.socket.off('newProducers');
       this.socket.off('consumerClosed');
     });
-    console.log('finished attaching other socket commands');
+    // console.log('finished attaching other socket commands');
   }
 
   createDevice = async (
     rtpCapabilities: mediasoupType.RtpCapabilities
   ) => {
-    console.log('creating device');
+    // console.log('creating device');
     let device =  new Device();
     await device.load({ routerRtpCapabilities: rtpCapabilities });
     this.device = device;
-    console.log('finished creating device');
+    // console.log('finished creating device');
   }
 
   createProducerTransport = async () => {
     if (this.device !== undefined) {
-      console.log('creating producer transport');
+      // console.log('creating producer transport');
       if (this.device === undefined) 
         throw new Error('Device is undefined while creating producer transport');
 
@@ -151,14 +158,14 @@ export class MediasoupPeer {
           this.producerTransport.close();
         }
       });
-      console.log('finished creating producer transport');
+      // console.log('finished creating producer transport');
     } else {
       console.error('Device is undefined. There\'s a problem with creating device');
     }
   }
 
   createConsumerTransport = async () => {
-    console.log('creating consumer transport');
+    // console.log('creating consumer transport');
     const transport = await mediasoupEvent(this.socket, 'createTransport', {
       forceTcp: false
     });
@@ -201,12 +208,12 @@ export class MediasoupPeer {
       }
     });
 
-    console.log('finished creating consumer transport');
+    // console.log('finished creating consumer transport');
   }
 
   // ----------------------------- MAIN FUNCTIONS -----------------------------
   produce = async (mediaType: string, deviceId: string) => {
-    console.log('start producing');
+    // console.log('start producing');
     
     // if (this.producerId !== undefined) {
     //   console.error('producer already exists');
@@ -230,7 +237,7 @@ export class MediasoupPeer {
 
       // Tell transport to send audio tracks to mediasoup router
       let producer = await this.producerTransport.produce({ track: audioTrack });
-      console.log('producer', producer);
+      // console.log('producer', producer);
       this.producers.set(producer.id, producer);
 
       producer.on('transportclose', () => {
@@ -238,24 +245,24 @@ export class MediasoupPeer {
       });
       
       producer.on('close', () => {
-        console.log('close producer');
+        // console.log('close producer');
         this.producers.delete(producer.id);
       });
 
       producer.on('trackended', () => {
-        console.log('trackended, close producer');
+        // console.log('trackended, close producer');
         this.closeProducer();
       });
 
       this.producerId = producer.id;
-      console.log('finished producing');
+      // console.log('finished producing');
     } catch(error) {
       console.error(error);
     }
   }
 
   consume = async (producerId: string) => {
-    console.log('creating consumer');
+    // console.log('creating consumer');
     const { consumer, audioStream } = await this.getConsumeStream(producerId);
 
     this.consumers.set(consumer.id, consumer);
@@ -273,14 +280,14 @@ export class MediasoupPeer {
     consumer.on('transportclose', () => {
       this.removeConsumer(consumer.id);
     });
-    console.log('finished creating consumer');
+    // console.log('finished creating consumer');
   }
 
   getConsumeStream = async (producerId: string): Promise<{ 
     consumer: mediasoupType.Consumer; 
     audioStream: MediaStream;
   }> => {
-    console.log('getting consumer streams');
+    // console.log('getting consumer streams');
     if (this.device === undefined) throw new Error('Device is undefined'); 
     const { rtpCapabilities } = this.device;
     const { rtpParameters, consumerId, mediaKind } = 
@@ -303,7 +310,7 @@ export class MediasoupPeer {
     if (consumer === undefined) throw new Error('Consumer is undefined');
     const audioStream = new MediaStream();
     audioStream.addTrack(consumer.track);
-    console.log('finished getting consumer streams');
+    // console.log('finished getting consumer streams');
     return {
       consumer,
       audioStream
@@ -311,7 +318,7 @@ export class MediasoupPeer {
   }
 
   closeProducer = () => {
-    console.log('closing producer: ', this.producerId);
+    // console.log('closing producer: ', this.producerId);
     
     if (this.producerId === undefined) throw new Error('Producer id is undefined');
     this.socket.emit('producerClosed', { producerId: this.producerId });
@@ -320,7 +327,7 @@ export class MediasoupPeer {
     this.producers.delete(this.producerId);
     this.producerId = undefined;
 
-    console.log('finished closing producer');
+    // console.log('finished closing producer');
   }
 
   pauseProducer = () => {

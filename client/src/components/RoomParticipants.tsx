@@ -20,7 +20,7 @@ const RoomParticipants = ({ clients }: { clients: Client[] }) => {
             key={client.id}
             className={participantStyles.participant__avatar}
           >
-            <Avatar size="default" icon={<UserOutlined />} />
+            <Avatar className={client.id} size="default" icon={<UserOutlined />} />
             <p>{client.name}</p>
           </div>
         ))}

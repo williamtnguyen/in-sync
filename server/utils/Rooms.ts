@@ -1,6 +1,8 @@
 import { Playlist } from './Playlist';
 import { types as mediasoupType } from 'mediasoup';
 const mediasoupConfig = require('../mediasoup-config');
+import { Server as WebSocketServer } from 'socket.io';
+import { isObject } from 'node:util';
 
 export interface ClientMap {
   [clientId: string]: string;
@@ -15,13 +17,15 @@ export interface Client {
   rtpCapabilities: mediasoupType.RtpCapabilities | undefined;
 }
 
+export interface Room {
+  clients: Client[];
+  youtubeID: string;
+  playlist: Playlist;
+  router: mediasoupType.Router;
+}
+
 export interface RoomMap {
-  [roomId: string]: {
-    clients: Client[];
-    youtubeID: string;
-    playlist: Playlist;
-    router: mediasoupType.Router;
-  };
+  [roomId: string]: Room;
 }
 
 /**
@@ -30,16 +34,23 @@ export interface RoomMap {
 class Rooms {
   private roomMap: RoomMap;
   private clientMap: ClientMap; // maps any socket.id to its respective roomId
+  private audioObserver: mediasoupType.AudioLevelObserver | undefined;
 
   constructor() {
     this.roomMap = {};
     this.clientMap = {};
+    this.audioObserver = undefined;
   }
 
   async addRoom(roomId: string, youtubeID: string, worker: mediasoupType.Worker) {
     if (!this.roomMap[roomId]) {
       const mediaCodecs = mediasoupConfig.mediasoup.router.codecs;
-      const router = await worker.createRouter({ mediaCodecs });      
+      const router = await worker.createRouter({ mediaCodecs });  
+      this.audioObserver = await router.createAudioLevelObserver({
+        maxEntries: 1,
+        threshold: -80,
+        interval: 800
+      });
       const roomDetails = {
         clients: [],
         youtubeID,
@@ -233,7 +244,8 @@ class Rooms {
   ) {
     let producer = await client.transports.get(producerTransportId)?.produce({
       kind: mediaType,
-      rtpParameters
+      rtpParameters,
+      appData: { clientId: client.id } // Used for telling if the user is talking
     });
 
     if (producer === undefined) throw new Error('Producer is undefined');
@@ -250,6 +262,7 @@ class Rooms {
   }
 
   async addConsumer(
+    io: WebSocketServer,
     client: Client,
     consumerTransportId: string, 
     producerId: string,
@@ -265,6 +278,10 @@ class Rooms {
       producerId,
       rtpCapabilities
     );
+
+    if (this.audioObserver === undefined) throw new Error('Audio observer is undefined');
+    this.audioObserver.addProducer({ producerId });
+    this.setAudioObserverEvents(room, io);
 
     if (consumer === undefined) throw new Error('Consumer is undefined');
 
@@ -286,6 +303,29 @@ class Rooms {
         producerPaused: consumer.producerPaused
       }
     }
+  }
+
+  setAudioObserverEvents(room: Room, io: WebSocketServer) {
+    this.audioObserver?.on('volumes', (volumes) => {
+      
+      const { producer, volume } = volumes[0];
+      console.log(volumes);
+
+      for (const client of room.clients) {
+        io.to(client.id).emit('activeSpeaker', {
+          clientId: producer.appData.clientId,
+          volume: volume
+        });
+      }
+    });
+
+    this.audioObserver?.on('silence', () => {
+      for (const client of room.clients) {
+        io.to(client.id).emit('activeSpeaker', {
+          clientId: null
+        });
+      }
+    });
   }
 
   async createConsumer(

@@ -60,17 +60,17 @@ const socketHandler = async (io: WebSocketServer) => {
     
     // -------------------------- MEDIASOUP EVENTS --------------------------
     socket.on('getRtpCapabilities', (data, callback) => {
-      console.log('getting rtp capabilities');
+      // console.log('getting rtp capabilities');
       
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
       
-      console.log('finished getting rtp capabilities\n');
+      // console.log('finished getting rtp capabilities\n');
       callback(Rooms.getRtpCapabilities(roomId));
     });
 
     socket.on('getProducers', () => {
-      console.log('getting producers');
+      // console.log('getting producers');
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
 
@@ -81,15 +81,15 @@ const socketHandler = async (io: WebSocketServer) => {
 
       
       io.to(roomId).emit('newProducers', producerIds);
-      console.log('finished getting producers\n');
+      // console.log('finished getting producers\n');
     });
 
     socket.on('createTransport', async (data, callback) => {
-      console.log('creating transport');
+      // console.log('creating transport');
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
 
-      console.log('finished creating transport\n');
+      // console.log('finished creating transport\n');
 
       callback(await Rooms.createTransport(socket.id, roomId));
     });
@@ -98,10 +98,10 @@ const socketHandler = async (io: WebSocketServer) => {
       transportId,
       dtlsParameters
     }, callback) => {
-      console.log('connecting transport');
+      // console.log('connecting transport');
       let client = Rooms.getClient(socket.id);
       await Rooms.addTransport(client, transportId, dtlsParameters);      
-      console.log('finished connecting transport\n');
+      // console.log('finished connecting transport\n');
 
       callback('success');
     });
@@ -111,7 +111,7 @@ const socketHandler = async (io: WebSocketServer) => {
       mediaType,
       rtpParameters
     }, callback) => {
-      console.log('creating producer');
+      // console.log('creating producer');
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
 
@@ -126,7 +126,7 @@ const socketHandler = async (io: WebSocketServer) => {
       // Let peers add client's producer to their list of producers
       const clientPeers = Rooms.getRoom(roomId).clients;
       const peers = clientPeers.filter(peer => socket.id !== peer.id);
-      console.log('peers: ', peers);
+      // console.log('peers: ', peers);
       
       for (let peer of peers) {
         io.to(peer.id).emit('newProducers', [{
@@ -135,7 +135,7 @@ const socketHandler = async (io: WebSocketServer) => {
         }]);
       }
 
-      console.log('finished creating producer\n');
+      // console.log('finished creating producer\n');
       callback({ producerId });
     });
 
@@ -144,9 +144,10 @@ const socketHandler = async (io: WebSocketServer) => {
       producerId,
       rtpCapabilities,
     }, callback) => {
-      console.log('creating consumer');
+      // console.log('creating consumer');
       const client = Rooms.getClient(socket.id);
       let consumerResult = await Rooms.addConsumer(
+        io,
         client,
         consumerTransportId,
         producerId,
@@ -162,7 +163,7 @@ const socketHandler = async (io: WebSocketServer) => {
         io.to(socket.id).emit('consumerClosed', { consumerId: consumer.id });
       });
 
-      console.log('finished creating consumer\n');
+      // console.log('finished creating consumer\n');
       callback(consumerParams);
     });
 
