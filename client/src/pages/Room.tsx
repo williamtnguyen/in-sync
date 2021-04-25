@@ -77,15 +77,7 @@ const Room = ({ location, match }: RoomProps & any) => {
     connectClient();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientDisplayName]);
-
-  useEffect(() => {
-    console.log('selected audio device changed: ', selectedAudioDevice);
-    
-    if (selectedAudioDevice.deviceId !== undefined) 
-      startMediasoup(socket, selectedAudioDevice.deviceId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAudioDevice]);
-  
+ 
   const connectClient = async () => {
     // Room host with socket from Landing page
     if (location.socket) {
@@ -157,7 +149,9 @@ const Room = ({ location, match }: RoomProps & any) => {
   };
 
   const startAudioCall = async (socket: SocketIOClient.Socket) => {
-    await setMediaDevices();
+    // if (selectedAudioDevice.deviceId === undefined) throw new Error('selected audio device is undefined')
+    const deviceId = await setMediaDevices();
+    await startMediasoup(socket, deviceId);
   }
 
   const setMediaDevices = async () => {
@@ -175,7 +169,7 @@ const Room = ({ location, match }: RoomProps & any) => {
     setSelectedAudioDevice({ 
       deviceId: newAudioDevices[0].deviceId
     });
-    // return newAudioDevices[0].deviceId;
+    return newAudioDevices[0].deviceId;
   }
 
   const startMediasoup = async (socket: SocketIOClient.Socket, audioDeviceId: string) => {
@@ -197,7 +191,7 @@ const Room = ({ location, match }: RoomProps & any) => {
 
     if (mediasoupPeer === undefined) throw new Error('mediasoup peer is undefined');
     mediasoupPeer.closeProducer();
-    await mediasoupPeer?.produce(device);
+    if (isMuted === false) await mediasoupPeer?.produce(device);
   }
 
   const handleMute = async () => {
@@ -209,6 +203,8 @@ const Room = ({ location, match }: RoomProps & any) => {
     else {
       // await startAudioCall(socket);
       if (selectedAudioDevice.deviceId === undefined) throw new Error('Device id is undefined');
+      console.log('selected device: ', selectedAudioDevice);
+      
       await mediasoupPeer.produce(selectedAudioDevice.deviceId);
       setIsMuted(false);
     }

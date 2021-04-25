@@ -122,14 +122,14 @@ const socketHandler = async (io: WebSocketServer) => {
       );
 
       // Let peers add client's producer to their list of producers
-      const clients = Rooms.getRoom(roomId).clients;
-      const peers = clients.filter(client => socket.id !== client.id);
+      // const clients = Rooms.getRoom(roomId).clients;
+      // const peers = clients.filter(client => socket.id !== client.id);
       // console.log('peers: ', peers);
-      console.log('producer id: ', producerId);
+      // console.log('producer id: ', producerId);
       
-      for (let peer of peers) {
-        io.to(peer.id).emit('newProducers', [{ producerId }]);
-      }
+      // for (let peer of peers) {
+        io.to(roomId).emit('newProducers', [{ producerId }]);
+      // }
 
       console.log('------------------------------\n');
       callback({ producerId });
@@ -161,6 +161,8 @@ const socketHandler = async (io: WebSocketServer) => {
     });
 
     socket.on('producerClosed', ({ producerId }) => {
+      console.log('closing ', producerId);
+      
       Rooms.closeProducer(socket.id, producerId);
       console.log(Rooms.getClient(socket.id).producers.keys());
     });

@@ -66,8 +66,10 @@ export class MediasoupPeer {
     }) => {         
       if (clients === undefined && this.tempClients === undefined) return;
       if (clients !== undefined) this.tempClients = clients;
+      // console.log('clients: ', clients);
+      // console.log('client volumes: ', clientVolumes);
       
-      this.tempClients?.forEach((client) => {        
+      this.tempClients?.forEach((client) => {
         let speakerAvatar: any = document.getElementsByClassName(client.id)[0];
         if (clientVolumes !== null && (client.id in clientVolumes)) {          
           speakerAvatar.style.backgroundColor = '#87d068';
@@ -235,18 +237,23 @@ export class MediasoupPeer {
       });
       
       producer.on('close', () => {
+        console.log('deleting producer: ', this.producerId);
+        console.log(this.producers);
+        
         this.producers.delete(producer.id);
+
+        console.log(this.producers);
       });
 
       producer.on('trackended', () => {
         this.closeProducer();
       });
 
-      console.log('prev producer id: ', this.producerId);
+      // console.log('prev producer id: ', this.producerId);
       
       this.producerId = producer.id;
       
-      console.log('new producer id: ', this.producerId);
+      // console.log('new producer id: ', this.producerId);
     } catch(error) {
       console.error(error);
     }
@@ -255,13 +262,16 @@ export class MediasoupPeer {
   consume = async (producerId: string) => {
     const { consumer, audioStream } = await this.getConsumeStream(producerId);
 
-    this.consumers.set(consumer.id, consumer);
-    let audioElem = document.createElement('audio');
-    audioElem.srcObject = audioStream;
-    audioElem.id = consumer.id;
-    audioElem.setAttribute('playsinline', 'true');
-    audioElem.autoplay = true;
-    this.remoteAudiosDiv?.appendChild(audioElem);     
+    // Does not add user's own audio
+    if (producerId !== this.producerId) {
+      this.consumers.set(consumer.id, consumer);
+      let audioElem = document.createElement('audio');
+      audioElem.srcObject = audioStream;
+      audioElem.id = consumer.id;
+      audioElem.setAttribute('playsinline', 'true');
+      audioElem.autoplay = true;
+      this.remoteAudiosDiv?.appendChild(audioElem);
+    }
 
     consumer.on('trackended', () => {
       this.removeConsumer(consumer.id);
@@ -278,7 +288,6 @@ export class MediasoupPeer {
   }> => {
     if (this.device === undefined) throw new Error('Device is undefined'); 
     const { rtpCapabilities } = this.device;
-    console.log(this.consumerTransport);
     const { rtpParameters, consumerId, mediaKind } = await mediasoupEvent(
       this.socket, 
       'consume', 
@@ -295,7 +304,7 @@ export class MediasoupPeer {
         id: consumerId,
         producerId,
         rtpParameters,
-        kind: mediaKind,
+        kind: mediaKind
       });
 
     if (consumer === undefined) throw new Error('Consumer is undefined');
@@ -309,12 +318,16 @@ export class MediasoupPeer {
 
   closeProducer = () => {
     console.log('closing producer');
-       
-    if (this.producerId === undefined) throw new Error('Producer id is undefined');
+    
+    // If muted and is selecting a different audio device
+    if (this.producerId === undefined) return;
+
     this.socket.emit('producerClosed', { producerId: this.producerId });
+    
     if (this.producers.get(this.producerId) === undefined) throw new Error('Producer map is undefined');
     this.producers.get(this.producerId)?.close();
     this.producers.delete(this.producerId);
+    
     this.producerId = undefined;
   }
 
