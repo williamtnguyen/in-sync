@@ -10,6 +10,7 @@ export interface ClientMap {
 export interface Client {
   id: string;
   name: string;
+  isMuted: boolean;
   transports: Map<string, mediasoupType.Transport>;
   consumers: Map<string, mediasoupType.Consumer>;
   producers: Map<string, mediasoupType.Producer>;
@@ -44,7 +45,7 @@ class Rooms {
   async addRoom(roomId: string, youtubeID: string, worker: mediasoupType.Worker) {
     if (!this.roomMap[roomId]) {
       const mediaCodecs = mediasoupConfig.mediasoup.router.codecs;
-      const router = await worker.createRouter({ mediaCodecs });  
+      const router = await worker.createRouter({ mediaCodecs });
       this.audioObserver = await router.createAudioLevelObserver({
         maxEntries: 100,
         threshold: -90,
@@ -70,11 +71,12 @@ class Rooms {
   addClient(roomId: string, clientId: string, clientName: string): void {
     if (this.clientMap[clientId]) {
       return;
-    }    
+    }
     if (this.roomMap[roomId]) {
-      const newClient: Client = { 
-        id: clientId, 
+      const newClient: Client = {
+        id: clientId,
         name: clientName,
+        isMuted: false,
         transports: new Map(),
         consumers: new Map(),
         producers: new Map(),
@@ -83,7 +85,6 @@ class Rooms {
       this.roomMap[roomId].clients.push(newClient);
       this.clientMap[clientId] = roomId;
     } else {
-      console.log(roomId);      
       throw new Error('Room with this ID does not exist');
     }
   }
@@ -125,6 +126,14 @@ class Rooms {
     } else {
       return lookup;
     }
+  }
+
+  updateMute(id: string, roomId: string): Client[] {
+    const clients = this.getRoomClients(roomId);
+    for (const client of clients) {
+      if (client.id === id) client.isMuted = !client.isMuted;
+    }
+    return clients;
   }
 
   getRoom(roomID: string) {
@@ -190,8 +199,9 @@ class Rooms {
       initialAvailableOutgoingBitrate
     });
 
-    if (maxIncomingBitrate) 
+    if (maxIncomingBitrate) {
       await transport.setMaxIncomingBitrate(maxIncomingBitrate);
+    }
 
     transport.on('dtlsstatechange', (dtlsState) => {
       if (dtlsState === 'closed') transport.close();
@@ -211,7 +221,7 @@ class Rooms {
     transportId: string,
     dtlsParameters: mediasoupType.DtlsParameters
   ) {
-    if (!client.transports.has(transportId)) return;    
+    if (!client.transports.has(transportId)) return;
     await client.transports.get(transportId)?.connect({
       dtlsParameters
     });
@@ -219,37 +229,36 @@ class Rooms {
 
   async addProducer(
     producerTransportId: string,
-    rtpParameters: mediasoupType.RtpParameters, 
+    rtpParameters: mediasoupType.RtpParameters,
     mediaType: mediasoupType.MediaKind,
     client: Client
   ) {
     return new Promise(async (resolve) => {
-      let producer = await this.createProducer(
+      const producer = await this.createProducer(
         client,
         producerTransportId,
         rtpParameters,
         mediaType
       );
       resolve(producer.id);
-    })
+    });
   }
 
   async createProducer(
     client: Client,
     producerTransportId: string,
-    rtpParameters: mediasoupType.RtpParameters, 
+    rtpParameters: mediasoupType.RtpParameters,
     mediaType: mediasoupType.MediaKind
   ) {
-    let producer = await client.transports.get(producerTransportId)?.produce({
+    const producer = await client.transports.get(producerTransportId)?.produce({
       kind: mediaType,
       rtpParameters,
       appData: { clientId: client.id } // Used for telling if the user is talking
     });
 
     if (producer === undefined) throw new Error('Producer is undefined');
-    
+
     client.producers.set(producer.id, producer);
-    console.log('producer size: ', client.producers.size);
 
     producer.on('closeTransport', () => {
       if (producer !== undefined) {
@@ -265,18 +274,18 @@ class Rooms {
     io: WebSocketServer,
     socket: Socket,
     client: Client,
-    consumerTransportId: string, 
+    consumerTransportId: string,
     producerId: string,
     rtpCapabilities: mediasoupType.RtpCapabilities
   ) {
     const roomId = this.getClientRoomId(client.id);
     const room = this.getRoom(roomId);
 
-    if (!room.router.canConsume({ producerId, rtpCapabilities })) {      
+    if (!room.router.canConsume({ producerId, rtpCapabilities })) {
       throw new Error(`Router can\'t consume ${producerId}`);
-    } 
+    }
 
-    let consumer: mediasoupType.Consumer | undefined = await this.createConsumer(
+    const consumer: mediasoupType.Consumer | undefined = await this.createConsumer(
       client,
       consumerTransportId,
       producerId,
@@ -286,7 +295,7 @@ class Rooms {
     if (this.audioObserver === undefined) throw new Error('Audio observer is undefined');
     this.audioObserver.addProducer({ producerId });
     this.setAudioObserverEvents(room, io, roomId);
-    
+
     if (consumer === undefined) throw new Error('Consumer is undefined');
     consumer.on('transportclose', () => {
       if (consumer === undefined) throw new Error('Consumer is undefined');
@@ -311,17 +320,17 @@ class Rooms {
         consumerType: consumer.type,
         producerPaused: consumer.producerPaused
       }
-    }
+    };
   }
 
   async createConsumer(
     client: Client,
-    consumerTransportId: string, 
+    consumerTransportId: string,
     producerId: string,
     rtpCapabilities: mediasoupType.RtpCapabilities
   ) {
-    let consumerTransport = client.transports.get(consumerTransportId);
-    let consumer = await consumerTransport?.consume({
+    const consumerTransport = client.transports.get(consumerTransportId);
+    const consumer = await consumerTransport?.consume({
       producerId,
       rtpCapabilities,
       paused: false
@@ -337,14 +346,12 @@ class Rooms {
     return consumer;
   }
 
-  setAudioObserverEvents(room: Room, io: WebSocketServer, roomId: string) {    
+  setAudioObserverEvents(room: Room, io: WebSocketServer, roomId: string) {
     this.audioObserver?.on('volumes', (volumes) => {
-      let clientVolumes: {[clientId: string]: number} = {};
+      const clientVolumes: {[clientId: string]: number} = {};
       for (const volume of volumes) {
         clientVolumes[volume.producer.appData.clientId] = volume.volume;
-      }     
-      // console.log('people are speaking');
-
+      }
       io.to(roomId).emit('activeSpeaker', {
         clientVolumes,
         clients: room.clients
@@ -352,8 +359,6 @@ class Rooms {
     });
 
     this.audioObserver?.on('silence', () => {
-      // console.log('room is silent');
-      
       io.to(roomId).emit('activeSpeaker', {
         clientVolumes: null
       });
@@ -365,10 +370,11 @@ class Rooms {
   }
 
   closeProducer(clientId: string, producerId: string) {
-    console.log('close producer');
     const client = this.getClient(clientId);
-    
-    if (client.producers.get(producerId) === undefined) throw new Error(`Producer id ${producerId} can\'t be found`);
+
+    if (client.producers.get(producerId) === undefined) {
+      throw new Error(`Producer id ${producerId} can\'t be found`);
+    }
     client.producers.get(producerId)?.close();
     client.producers.delete(producerId);
   }

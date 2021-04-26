@@ -13,7 +13,7 @@ const mediasoup = require('mediasoup');
 const mediasoupConfig = require('../mediasoup-config');
 
 const socketHandler = async (io: WebSocketServer) => {
-  let workers: mediasoupType.Worker[] = [];
+  const workers: mediasoupType.Worker[] = [];
   let workerIndex = 0;
   await createMediasoupWorkers(workers);
 
@@ -29,7 +29,9 @@ const socketHandler = async (io: WebSocketServer) => {
       const { roomId, clientId, clientName, youtubeID } = clientData;
       socket.join(roomId);
 
-      let worker = getMediasoupWorker(workerIndex, workers);
+      const worker = getMediasoupWorker(workerIndex, workers);
+      if (workerIndex + 1 === workers.length) workerIndex = 0;
+
       await Rooms.addRoom(roomId, youtubeID, worker);
       Rooms.addClient(roomId, clientId, clientName);
 
@@ -57,50 +59,42 @@ const socketHandler = async (io: WebSocketServer) => {
         );
       }
     });
-    
+
     // -------------------------- MEDIASOUP EVENTS --------------------------
     socket.on('getRtpCapabilities', (data, callback) => {
-      console.log('get rtp capabilities\n');
-      
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
-      
       callback(Rooms.getRtpCapabilities(roomId));
     });
 
     socket.on('getProducers', () => {
-      console.log('get producers\n');
       const roomId = Rooms.getClientRoomId(socket.id);
       const roomClients = Rooms.getRoomClients(roomId);
 
-      let producerIds: { producerId: string }[] = [];
-      roomClients.forEach(client => {
+      const producerIds: { producerId: string }[] = [];
+      roomClients.forEach((client) => {
         if (client.id !== socket.id) {
           for (const [producerId, producer] of client.producers) {
-            producerIds.push({ producerId: producer.id});
+            producerIds.push({ producerId: producer.id });
           }
-        } 
+        }
       });
-      
+
       socket.emit('newProducers', producerIds);
     });
 
     socket.on('createTransport', async (data, callback) => {
-      console.log('create transport\n');
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
-
       callback(await Rooms.createTransport(socket.id, roomId));
     });
 
     socket.on('connectTransport', async({
       transportId,
       dtlsParameters
-    }, callback) => {
-      console.log('connect transport\n');
-      let client = Rooms.getClient(socket.id);
-      await Rooms.addTransport(client, transportId, dtlsParameters);      
-
+    },                                  callback) => {
+      const client = Rooms.getClient(socket.id);
+      await Rooms.addTransport(client, transportId, dtlsParameters);
       callback('success');
     });
 
@@ -108,30 +102,19 @@ const socketHandler = async (io: WebSocketServer) => {
       producerTransportId,
       mediaType,
       rtpParameters
-    }, callback) => {
-      console.log('create producer');
+    },                          callback) => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
 
       // Create client's producer
-      let producerId = await Rooms.addProducer(
+      const producerId = await Rooms.addProducer(
         producerTransportId,
         rtpParameters,
         mediaType,
         client
       );
 
-      // Let peers add client's producer to their list of producers
-      // const clients = Rooms.getRoom(roomId).clients;
-      // const peers = clients.filter(client => socket.id !== client.id);
-      // console.log('peers: ', peers);
-      // console.log('producer id: ', producerId);
-      
-      // for (let peer of peers) {
-        io.to(roomId).emit('newProducers', [{ producerId }]);
-      // }
-
-      console.log('------------------------------\n');
+      io.to(roomId).emit('newProducers', [{ producerId }]);
       callback({ producerId });
     });
 
@@ -139,9 +122,9 @@ const socketHandler = async (io: WebSocketServer) => {
       consumerTransportId,
       producerId,
       rtpCapabilities,
-    }, callback) => {
+    },                          callback) => {
       const client = Rooms.getClient(socket.id);
-      let consumerResult = await Rooms.addConsumer(
+      const consumerResult = await Rooms.addConsumer(
         io,
         socket,
         client,
@@ -151,20 +134,12 @@ const socketHandler = async (io: WebSocketServer) => {
       );
 
       if (consumerResult === undefined) throw new Error('Unable to create consumer');
-
-      let { consumer, consumerParams } = consumerResult;
-
-      console.log('consumer id: ', consumer.id);
-      console.log('consuming producer: ', producerId, ' and adding to: ', consumerParams.consumerId, '\n');
-
+      const { consumerParams } = consumerResult;
       callback(consumerParams);
     });
 
     socket.on('producerClosed', ({ producerId }) => {
-      console.log('closing ', producerId);
-      
       Rooms.closeProducer(socket.id, producerId);
-      console.log(Rooms.getClient(socket.id).producers.keys());
     });
 
     // -------------------------- YOUTUBE EVENTS --------------------------
@@ -253,6 +228,14 @@ const socketHandler = async (io: WebSocketServer) => {
       io.to(roomId).emit('notifyClient', movePlaylistItem(newPlaylist));
     });
 
+    // -------------------------- OTHER EVENTS --------------------------
+    socket.on('mute', ({ id }) => {
+      const client = Rooms.getClient(socket.id);
+      const roomId = Rooms.getClientRoomId(client.id);
+      const newClients = Rooms.updateMute(id, roomId);
+      io.to(roomId).emit('updateClientList', newClients);
+    });
+
     socket.on('disconnect', () => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
@@ -263,8 +246,8 @@ const socketHandler = async (io: WebSocketServer) => {
   });
 };
 
-const createMediasoupWorkers = async (workers: mediasoupType.Worker[]) => { 
-  let {
+const createMediasoupWorkers = async (workers: mediasoupType.Worker[]) => {
+  const {
     numWorkers,
     logLevel,
     logTags,
@@ -272,7 +255,7 @@ const createMediasoupWorkers = async (workers: mediasoupType.Worker[]) => {
     rtcMaxPort
   } = mediasoupConfig.mediasoup;
 
-  for (let i = 0; i < numWorkers; i++) {
+  for (let i = 0; i < numWorkers; i += 1) {
     const worker = await mediasoup.createWorker({
       logLevel,
       logTags,
@@ -286,12 +269,11 @@ const createMediasoupWorkers = async (workers: mediasoupType.Worker[]) => {
 
     workers.push(worker);
   }
-}
+};
 
 const getMediasoupWorker = (workerIndex: number, workers: mediasoupType.Worker[]) => {
   const worker = workers[workerIndex];
-  if (workerIndex + 1 === workers.length) workerIndex = 0;
   return worker;
-}
+};
 
 export default socketHandler;

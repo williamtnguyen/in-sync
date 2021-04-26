@@ -1,5 +1,5 @@
 import React from 'react';
-import { Avatar, Button } from 'antd';
+import { Avatar, Button, Badge } from 'antd';
 import { AudioMutedOutlined, AudioOutlined, UserOutlined } from '@ant-design/icons';
 
 import participantStyles from '../styles/components/room-participants.module.scss';
@@ -7,31 +7,42 @@ import participantStyles from '../styles/components/room-participants.module.scs
 interface Client {
   id: string;
   name: string;
+  isMuted: boolean;
 }
 
-const RoomParticipants = ({ 
-  clients, 
-  isMuted, 
-  handleMute 
-}: { 
+const RoomParticipants = ({
+  clients,
+  isMuted,
+  handleMute,
+  handleSelectAudioModal
+}: {
   clients: Client[],
   isMuted: boolean,
-  handleMute: {(): Promise<void>}
+  handleMute: () => Promise<void>,
+  handleSelectAudioModal: () => void
 }) => {
   return (
     <div className={participantStyles.root}>
       <h3>Participants ({clients.length})</h3>
       {isMuted ? (
-        <Button shape='round' size='small' onClick={handleMute}>
+        <Button shape="round" size="small" onClick={handleMute}>
           <AudioMutedOutlined className={participantStyles.participant__muted} />
           Unmute
         </Button>
       ) : (
-        <Button shape='round' size='small' onClick={handleMute}>
+        <Button shape="round" size="small" onClick={handleMute}>
           <AudioOutlined className={participantStyles.participant__unmuted} />
           Mute
         </Button>
       )}
+      <Button
+        shape="round"
+        size="small"
+        onClick={handleSelectAudioModal}
+        style={{ marginLeft: '0.5em' }}
+      >
+        Change audio device
+      </Button>
 
       <div className={participantStyles.participants__container}>
         {clients.map((client: Client) => (
@@ -39,7 +50,13 @@ const RoomParticipants = ({
             key={client.id}
             className={participantStyles.participant__avatar}
           >
-            <Avatar className={client.id} size="default" icon={<UserOutlined />} />
+            {client.isMuted ? (
+              <Badge count={<AudioMutedOutlined style={{ color: 'red' }}/>}>
+                <Avatar className={client.id} size="default" icon={<UserOutlined />} />
+              </Badge>
+            ) : (
+              <Avatar className={client.id} size="default" icon={<UserOutlined />} />
+            )}
             <p>{client.name}</p>
           </div>
         ))}

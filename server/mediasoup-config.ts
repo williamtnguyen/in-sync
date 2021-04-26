@@ -28,21 +28,18 @@ module.exports = {
     },
     // Router settings
     router: {
-      codecs:
-        [
-          {
-            kind: 'audio',
-            mimeType: 'audio/opus',
-            clockRate: 48000,
-            channels: 2
-          }
-        ]
+      codecs: [{
+        kind: 'audio',
+        mimeType: 'audio/opus',
+        clockRate: 48000,
+        channels: 2
+      }]
     },
     // WebRtcTransport settings
     webRtcTransport: {
       listenIps: [
         {
-          ip: '0.0.0.0',      
+          ip: '0.0.0.0',
           announcedIp:'127.0.0.1' // replace by public IP address
         }
       ],

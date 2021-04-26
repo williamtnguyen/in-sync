@@ -30,11 +30,12 @@ type RoomProps = RouteComponentProps<MatchParams, {}, LocationState>;
 interface Client {
   id: string;
   name: string;
+  isMuted: boolean;
 }
 
 interface AudioDevices {
-  deviceId: string,
-  deviceName: string
+  deviceId: string;
+  deviceName: string;
 }
 
 const Room = ({ location, match }: RoomProps & any) => {
@@ -49,12 +50,13 @@ const Room = ({ location, match }: RoomProps & any) => {
 
   const [clients, setClients] = useState(
     clientId && clientDisplayName
-      ? [{ id: clientId, name: clientDisplayName }]
+      ? [{ id: clientId, name: clientDisplayName, isMuted: false }]
       : []
   );
 
   const [enterDisplayName, setEnterDisplayName] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [selectNewAudio, setSelectNewAudio] = useState(false);
 
   const [socket, setSocket] = useState(location.socket ? location.socket : {});
   const [mediasoupPeer, setMediasoupPeer] = useState<MediasoupPeer>();
@@ -77,18 +79,17 @@ const Room = ({ location, match }: RoomProps & any) => {
     connectClient();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientDisplayName]);
- 
+
   const connectClient = async () => {
     // Room host with socket from Landing page
     if (location.socket) {
-      // TODO: remove this
       clientDispatch({
         type: ClientStates.UPDATE_YOUTUBE_ID,
         youtubeID: roomYoutubeId,
       });
       updateClientList(location.socket);
       setSocket(location.socket);
-      roomSocketEvents(location.socket, dispatches);     
+      roomSocketEvents(location.socket, dispatches);
       await startAudioCall(location.socket);
     }
     // Joining client or Room host that already made connection and refreshed
@@ -102,7 +103,7 @@ const Room = ({ location, match }: RoomProps & any) => {
       updateClientList(socketConnection);
       updatePlaylist(socketConnection);
       setSocket(socketConnection);
-      roomSocketEvents(socketConnection, dispatches);      
+      roomSocketEvents(socketConnection, dispatches);
       await startAudioCall(socketConnection);
     }
     // Joining clients: inputted displayName
@@ -128,8 +129,6 @@ const Room = ({ location, match }: RoomProps & any) => {
   // Subscribes to updateClientList broadcasts from WebSocketServer
   const updateClientList = (connectingSocket: SocketIOClient.Socket) => {
     connectingSocket.on('updateClientList', (newClientList: Client[]) => {
-      console.log('client list: ', newClientList);
-      
       setClients(newClientList);
     });
   };
@@ -149,15 +148,14 @@ const Room = ({ location, match }: RoomProps & any) => {
   };
 
   const startAudioCall = async (socket: SocketIOClient.Socket) => {
-    // if (selectedAudioDevice.deviceId === undefined) throw new Error('selected audio device is undefined')
     const deviceId = await setMediaDevices();
     await startMediasoup(socket, deviceId);
-  }
+  };
 
   const setMediaDevices = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
-    let newAudioDevices: AudioDevices[] = [];    
-    devices.forEach(device => {
+    const newAudioDevices: AudioDevices[] = [];
+    devices.forEach((device) => {
       if (device.kind === 'audioinput') {
         newAudioDevices.push({
           deviceId: device.deviceId,
@@ -166,49 +164,52 @@ const Room = ({ location, match }: RoomProps & any) => {
       }
     });
     setAudioDevices(newAudioDevices);
-    setSelectedAudioDevice({ 
+    setSelectedAudioDevice({
       deviceId: newAudioDevices[0].deviceId
     });
     return newAudioDevices[0].deviceId;
-  }
+  };
 
   const startMediasoup = async (socket: SocketIOClient.Socket, audioDeviceId: string) => {
-    // console.log('creating mediasoup peer');
-    let peer = new MediasoupPeer(socket, remoteAudiosDiv);
+    const peer = new MediasoupPeer(socket, remoteAudiosDiv);
     await setMediasoupPeer(peer);
     await peer.init();
-    console.log(audioDeviceId);
     await peer.produce(audioDeviceId);
-    // console.log('finished creating mediasoup peer');
-  }
+  };
 
   const handleAudioSelect = async (device: any) => {
-    console.log('selected device: ', device);
-     
     setSelectedAudioDevice({
       deviceId: device
     });
 
     if (mediasoupPeer === undefined) throw new Error('mediasoup peer is undefined');
     mediasoupPeer.closeProducer();
-    if (isMuted === false) await mediasoupPeer?.produce(device);
-  }
+    if (!isMuted) await mediasoupPeer?.produce(device);
+  };
 
   const handleMute = async () => {
     if (mediasoupPeer === undefined) throw new Error('mediasoup peer is undefined');
-    if (isMuted === false) {
+    if (!isMuted) {
       mediasoupPeer.closeProducer();
       setIsMuted(true);
     }
     else {
-      // await startAudioCall(socket);
       if (selectedAudioDevice.deviceId === undefined) throw new Error('Device id is undefined');
-      console.log('selected device: ', selectedAudioDevice);
-      
       await mediasoupPeer.produce(selectedAudioDevice.deviceId);
       setIsMuted(false);
     }
-  }
+
+    const newClients = clients;
+    for (const client of newClients) {
+      if (socket.id === client.id) client.isMuted = !client.isMuted;
+    }
+    setClients(newClients);
+    socket.emit('mute', { id: socket.id });
+  };
+
+  const handleSelectAudioModal = () => {
+    selectNewAudio ? setSelectNewAudio(false) : setSelectNewAudio(true);
+  };
 
   return (
     <div className={`${roomStyles.root} container`}>
@@ -238,33 +239,43 @@ const Room = ({ location, match }: RoomProps & any) => {
         </Modal>
       ) : (
         <div>
-            {/* {console.log('selected audio device: ', selectedAudioDevice)} */}
-            <div id="remoteAudios"></div>
-            {selectedAudioDevice.deviceId && selectedAudioDevice.deviceId.length > 0 && (
-              <div style={{'marginTop': '4em'}}>
-                <p style={{'display':'inline'}}>audio: </p>
-                {/* <Form style={{'display':'inline'}}>
-                  <Form.Item> */}
-                    {/* {console.log(audioDevices)} */}
-                    <Select 
-                      defaultValue={audioDevices[0].deviceName}
-                      onChange={handleAudioSelect}
-                    >{
-                      audioDevices.map((audioDevice) => (
-                        <Option key={audioDevice.deviceName} value={audioDevice.deviceId}>{audioDevice.deviceName}</Option>  
-                      ))
-                    }</Select>
-                  {/* </Form.Item>
-                </Form> */}
-              </div>
-            )}
+          <div id="remoteAudios"/>
+          {selectNewAudio &&
+            selectedAudioDevice.deviceId &&
+            selectedAudioDevice.deviceId.length > 0 && (
+              <Modal
+                title="Select a new input device"
+                onCancel={handleSelectAudioModal}
+                visible={selectNewAudio}
+                footer={null}
+                centered
+              >
+                <div className={roomStyles.audio__modal}>
+                  <Select
+                    defaultValue={audioDevices[0].deviceName}
+                    onChange={handleAudioSelect}
+                  >{
+                    audioDevices.map((audioDevice) => (
+                      <Option
+                        key={audioDevice.deviceName}
+                        value={audioDevice.deviceId}
+                      >
+                        {audioDevice.deviceName}
+                      </Option>
+                    ))
+                  }</Select>
+                </div>
+              </Modal>
+            )
+          }
 
           <Row gutter={16} className={roomStyles.main__content}>
             <Col sm={16} className={roomStyles.left__col}>
-              <RoomParticipants 
-                clients={clients} 
+              <RoomParticipants
+                clients={clients}
                 isMuted={isMuted}
-                handleMute={handleMute} 
+                handleMute={handleMute}
+                handleSelectAudioModal={handleSelectAudioModal}
               />
               <Video youtubeID={clientData.youtubeID} socket={socket} />
               <Playlist socket={socket} />
