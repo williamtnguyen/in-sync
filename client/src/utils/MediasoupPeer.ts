@@ -28,7 +28,7 @@ export class MediasoupPeer {
   // ----------------------------- FUNCTIONS FOR INITIALIZATION -----------------------------
   async init() {
     await this.initMediasoupData();
-    await this.initSocket();
+    this.initSocket();
   }
 
   initMediasoupData = async () => {
@@ -94,10 +94,6 @@ export class MediasoupPeer {
 
   createProducerTransport = async () => {
     if (this.device !== undefined) {
-      if (this.device === undefined) {
-        throw new Error('Device is undefined while creating producer transport');
-      }
-
       const transport = await mediasoupEvent(this.socket, 'createTransport', {
         forceTcp: false,
         rtpCapabilities: this.device.rtpCapabilities
@@ -119,12 +115,15 @@ export class MediasoupPeer {
       this.producerTransport.on('connect', async ({
         dtlsParameters
       }, callback, errorback) => {
-        mediasoupEvent(this.socket, 'connectTransport', {
+        await mediasoupEvent(this.socket, 'connectTransport', {
           transportId: transport.id,
           dtlsParameters
-        })
-          .then(callback)
-          .catch(errorback);
+        });
+        try {
+          callback();
+        } catch (error) {
+          errorback(error);
+        }
       });
 
       this.producerTransport.on('produce', async ({
@@ -187,12 +186,15 @@ export class MediasoupPeer {
     this.consumerTransport.on('connect', async ({
       dtlsParameters
     }, callback, errorback) => {
-      mediasoupEvent(this.socket, 'connectTransport', {
+      await mediasoupEvent(this.socket, 'connectTransport', {
         transportId: this.consumerTransport?.id,
         dtlsParameters
-      })
-        .then(callback)
-        .catch(errorback);
+      });
+      try {
+        callback();
+      } catch (error) {
+        errorback(error);
+      }
     });
 
     this.consumerTransport.on('connectionstatechange', async (state) => {

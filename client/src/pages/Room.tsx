@@ -33,7 +33,7 @@ interface Client {
   isMuted: boolean;
 }
 
-interface AudioDevices {
+interface AudioDevice {
   deviceId: string;
   deviceName: string;
 }
@@ -60,11 +60,11 @@ const Room = ({ location, match }: RoomProps & any) => {
 
   const [socket, setSocket] = useState(location.socket ? location.socket : {});
   const [mediasoupPeer, setMediasoupPeer] = useState<MediasoupPeer>();
-  const [audioDevices, setAudioDevices] = useState<AudioDevices[]>([]);
+  const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<{
-    deviceId: string | undefined
+    deviceId: string;
   }>({
-    deviceId: undefined
+    deviceId: '',
   });
 
   const { clientDispatch, clientData } = useContext(ClientContext);
@@ -154,47 +154,55 @@ const Room = ({ location, match }: RoomProps & any) => {
 
   const setMediaDevices = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
-    const newAudioDevices: AudioDevices[] = [];
+    const newAudioDevices: AudioDevice[] = [];
     devices.forEach((device) => {
       if (device.kind === 'audioinput') {
         newAudioDevices.push({
           deviceId: device.deviceId,
-          deviceName: device.label
+          deviceName: device.label,
         });
       }
     });
     setAudioDevices(newAudioDevices);
     setSelectedAudioDevice({
-      deviceId: newAudioDevices[0].deviceId
+      deviceId: newAudioDevices[0].deviceId,
     });
     return newAudioDevices[0].deviceId;
   };
 
-  const startMediasoup = async (socket: SocketIOClient.Socket, audioDeviceId: string) => {
+  const startMediasoup = async (
+    socket: SocketIOClient.Socket,
+    audioDeviceId: string
+  ) => {
     const peer = new MediasoupPeer(socket, remoteAudiosDiv);
-    await setMediasoupPeer(peer);
+    setMediasoupPeer(peer);
     await peer.init();
     await peer.produce(audioDeviceId);
   };
 
   const handleAudioSelect = async (device: any) => {
     setSelectedAudioDevice({
-      deviceId: device
+      deviceId: device,
     });
 
-    if (mediasoupPeer === undefined) throw new Error('mediasoup peer is undefined');
+    if (mediasoupPeer === undefined) {
+      throw new Error('mediasoup peer is undefined');
+    }
     mediasoupPeer.closeProducer();
     if (!isMuted) await mediasoupPeer?.produce(device);
   };
 
   const handleMute = async () => {
-    if (mediasoupPeer === undefined) throw new Error('mediasoup peer is undefined');
+    if (mediasoupPeer === undefined) {
+      throw new Error('mediasoup peer is undefined');
+    }
     if (!isMuted) {
       mediasoupPeer.closeProducer();
       setIsMuted(true);
-    }
-    else {
-      if (selectedAudioDevice.deviceId === undefined) throw new Error('Device id is undefined');
+    } else {
+      if (!selectedAudioDevice.deviceId) {
+        throw new Error('Device id is undefined');
+      }
       await mediasoupPeer.produce(selectedAudioDevice.deviceId);
       setIsMuted(false);
     }
@@ -208,7 +216,7 @@ const Room = ({ location, match }: RoomProps & any) => {
   };
 
   const handleSelectAudioModal = () => {
-    selectNewAudio ? setSelectNewAudio(false) : setSelectNewAudio(true);
+    setSelectNewAudio(!selectNewAudio);
   };
 
   return (
@@ -239,10 +247,9 @@ const Room = ({ location, match }: RoomProps & any) => {
         </Modal>
       ) : (
         <div>
-          <div id="remoteAudios"/>
+          <div id="remoteAudios" />
           {selectNewAudio &&
-            selectedAudioDevice.deviceId &&
-            selectedAudioDevice.deviceId.length > 0 && (
+            selectedAudioDevice.deviceId && (
               <Modal
                 title="Select a new input device"
                 onCancel={handleSelectAudioModal}
@@ -254,20 +261,19 @@ const Room = ({ location, match }: RoomProps & any) => {
                   <Select
                     defaultValue={audioDevices[0].deviceName}
                     onChange={handleAudioSelect}
-                  >{
-                    audioDevices.map((audioDevice) => (
+                  >
+                    {audioDevices.map((audioDevice) => (
                       <Option
                         key={audioDevice.deviceName}
                         value={audioDevice.deviceId}
                       >
                         {audioDevice.deviceName}
                       </Option>
-                    ))
-                  }</Select>
+                    ))}
+                  </Select>
                 </div>
               </Modal>
-            )
-          }
+            )}
 
           <Row gutter={16} className={roomStyles.main__content}>
             <Col sm={16} className={roomStyles.left__col}>

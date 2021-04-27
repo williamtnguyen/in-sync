@@ -18,12 +18,12 @@ const RoomParticipants = ({
 }: {
   clients: Client[],
   isMuted: boolean,
-  handleMute: () => Promise<void>,
+  handleMute: () => void,
   handleSelectAudioModal: () => void
 }) => {
   return (
     <div className={participantStyles.root}>
-      <h3>Participants ({clients.length})</h3>
+      <h3 className={participantStyles.title}>Participants ({clients.length})</h3>
       {isMuted ? (
         <Button shape="round" size="small" onClick={handleMute}>
           <AudioMutedOutlined className={participantStyles.participant__muted} />
