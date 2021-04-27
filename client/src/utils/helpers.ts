@@ -12,3 +12,12 @@ export const validVideoURL = (url: string) => {
   }
   return false;
 };
+
+export const mediasoupEvent = async (
+  socket: SocketIOClient.Socket,
+  event: string, data = {}
+): Promise<any> => {
+  return new Promise((resolve) => {
+    socket.emit(event, data, resolve);
+  });
+};
