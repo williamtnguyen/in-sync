@@ -6,6 +6,8 @@ const socketServerDomain = 'http://localhost:5000';
 // Establishes a WebSocket connection and resolves the socket object
 export const createConnection = (
   displayName: string,
+  roomType: string,
+  canJoin: boolean,
   roomId?: string
 ): Promise<SocketIOClient.Socket> => {
   return new Promise((resolve) => {
@@ -17,6 +19,8 @@ export const createConnection = (
         // if a clientID is present in sessionStorage, use it again
         clientId: socket.id,
         clientName: displayName,
+        roomType,
+        canJoin
       };
 
       socket.emit('join', clientData);

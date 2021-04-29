@@ -26,37 +26,39 @@ const socketHandler = async (io: WebSocketServer) => {
     socket.on('join', async (clientData) => {
       // tslint:disable-next-line: no-console
       console.log('join broadcast triggered');
-      const { roomId, clientId, clientName, youtubeID } = clientData;
-      socket.join(roomId);
+      const { roomId, clientId, clientName, youtubeID, roomType, canJoin } = clientData;
+      if (canJoin) {
+        socket.join(roomId);
 
-      const worker = getMediasoupWorker(workerIndex, workers);
-      if (workerIndex + 1 === workers.length) workerIndex = 0;
+        const worker = getMediasoupWorker(workerIndex, workers);
+        if (workerIndex + 1 === workers.length) workerIndex = 0;
 
-      await Rooms.addRoom(roomId, youtubeID, worker);
-      Rooms.addClient(roomId, clientId, clientName);
+        await Rooms.addRoom(roomId, youtubeID, worker, roomType);
+        Rooms.addClient(roomId, clientId, clientName);
 
-      // TODO: not sure if this is listened to on client side
-      socket.broadcast.to(roomId).emit(
-        'notifyClient',
-        createClientNotifier('clientJoin', {
-          roomId,
-          clientId,
-          clientName,
-        })
-      );
-
-      io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
-      io.to(roomId).emit('updatePlaylist', Rooms.getPlaylistVideoIds(roomId));
-
-      // TODO: refactor logic without youtubeID in general
-      if (!youtubeID) {
-        const room = Rooms.getRoom(roomId);
-        socket.emit(
+        // TODO: not sure if this is listened to on client side
+        socket.broadcast.to(roomId).emit(
           'notifyClient',
-          createClientNotifier('CHANGE_VIDEO', {
-            youtubeID: room.youtubeID,
+          createClientNotifier('clientJoin', {
+            roomId,
+            clientId,
+            clientName,
           })
         );
+
+        io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
+        io.to(roomId).emit('updatePlaylist', Rooms.getPlaylistVideoIds(roomId));
+
+        // TODO: refactor logic without youtubeID in general
+        if (!youtubeID) {
+          const room = Rooms.getRoom(roomId);
+          socket.emit(
+            'notifyClient',
+            createClientNotifier('CHANGE_VIDEO', {
+              youtubeID: room.youtubeID,
+            })
+          );
+        }
       }
     });
 
@@ -228,6 +230,35 @@ const socketHandler = async (io: WebSocketServer) => {
       io.to(roomId).emit('notifyClient', movePlaylistItem(newPlaylist));
     });
 
+    // -------------------------- WAITING ROOM EVENTS --------------------------
+    socket.on('getRoomType', async (
+      { clientName, roomId }: { clientName: string, roomId: string },
+      callback
+    ) => {
+      const room = Rooms.getRoom(roomId);
+      const roomType = room.roomType;
+      if (roomType === 'private') {
+        // Update waiting clients and list in the room
+        room.waitingClients = {
+          ...room.waitingClients,
+          [socket.id]: clientName
+        };
+        Rooms.addToWaitingList(socket.id, roomId);
+
+        // Update waiting clients on the client side of the host
+        io.to(room.hostId).emit('waitingClient', { socketId: socket.id, clientName });
+      }
+
+      await callback(roomType);
+    });
+
+    socket.on('waitingResponse', (
+      { socketId, status }: { socketId: string, status: string }
+    ) => {
+      Rooms.removeFromWaiting(socketId);
+      io.to(socketId).emit(status);
+    });
+
     // -------------------------- OTHER EVENTS --------------------------
     socket.on('mute', ({ id }) => {
       const client = Rooms.getClient(socket.id);
@@ -237,11 +268,39 @@ const socketHandler = async (io: WebSocketServer) => {
     });
 
     socket.on('disconnect', () => {
-      const client = Rooms.getClient(socket.id);
-      const roomId = Rooms.getClientRoomId(client.id);
-      Rooms.closeTransports(client);
-      const newClientList = Rooms.removeClient(roomId, socket.id);
-      io.to(roomId).emit('updateClientList', newClientList);
+      if (!Rooms.isInWaitingList(socket.id)) {
+        const client = Rooms.getClient(socket.id);
+        if (client === undefined) return;
+        const roomId = Rooms.getClientRoomId(client.id);
+        const room = Rooms.getRoom(roomId);
+
+        // Choose the next host if the socket that's disconnecting is the host
+        if (socket.id === room.hostId) {
+          if (room.clients.length - 1 !== 0) {
+            room.hostId = room.clients[1].id;
+            socket.to(roomId).emit('newHost', room.clients[1].name, room.hostId);
+            io.to(room.hostId).emit('updateWaitingClients', {
+              waitingClientList: room.waitingClients,
+              clientIdLeft: ''
+            });
+          } else {
+            Rooms.closeRoom(roomId);
+            return;
+          }
+        }
+        Rooms.closeTransports(client);
+        const newClientList = Rooms.removeClient(roomId, socket.id);
+        io.to(roomId).emit('updateClientList', newClientList);
+      } else {
+        const roomId = Rooms.getWaitingClientRoomId(socket.id);
+        Rooms.removeFromWaiting(socket.id);
+        const room = Rooms.getRoom(roomId);
+
+        io.to(room.hostId).emit('updateWaitingClients', {
+          waitingClientList: room.waitingClients,
+          clientIdLeft: socket.id
+        });
+      }
     });
   });
 };

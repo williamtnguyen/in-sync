@@ -13,8 +13,10 @@ const { TabPane } = Tabs;
 const Landing = (props: RouteComponentProps & any) => {
   const { setClientId, setClientDisplayName } = useContext(SocketContext);
 
-  const startSession = async ({ displayName }: { displayName: string }) => {
-    const newSocket = await createConnection(displayName);
+  const startSession = async (
+    { displayName, roomType }: { displayName: string, roomType: string }
+  ) => {
+    const newSocket = await createConnection(displayName, roomType, true);
 
     setClientId(newSocket.id);
     setClientDisplayName(displayName);

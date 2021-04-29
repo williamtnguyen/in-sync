@@ -22,6 +22,9 @@ export interface Room {
   youtubeID: string;
   playlist: Playlist;
   router: mediasoupType.Router;
+  roomType: string;
+  hostId: string;
+  waitingClients: {[socketId: string]: string};
 }
 
 export interface RoomMap {
@@ -35,14 +38,23 @@ class Rooms {
   private roomMap: RoomMap;
   private clientMap: ClientMap; // maps any socket.id to its respective roomId
   private audioObserver: mediasoupType.AudioLevelObserver | undefined;
+  // used in disconnect to find if a user is in a waiting room of a room
+  private waitingList: {[socketId: string]: string};
 
   constructor() {
     this.roomMap = {};
     this.clientMap = {};
     this.audioObserver = undefined;
+    this.waitingList = {}; // socketid -> roomId
   }
 
-  async addRoom(roomId: string, youtubeID: string, worker: mediasoupType.Worker) {
+  closeRoom(roomId: string) {
+    const room = this.getRoom(roomId);
+    room.router.close();
+    delete this.roomMap[roomId];
+  }
+
+  async addRoom(roomId: string, youtubeID: string, worker: mediasoupType.Worker, roomType: string) {
     if (!this.roomMap[roomId]) {
       const mediaCodecs = mediasoupConfig.mediasoup.router.codecs;
       const router = await worker.createRouter({ mediaCodecs });
@@ -55,7 +67,10 @@ class Rooms {
         clients: [],
         youtubeID,
         playlist: new Playlist(),
-        router
+        router,
+        roomType,
+        hostId: roomId,
+        waitingClients: {} // socketId -> name
       };
       this.roomMap[roomId] = roomDetails;
     }
@@ -84,6 +99,8 @@ class Rooms {
       };
       this.roomMap[roomId].clients.push(newClient);
       this.clientMap[clientId] = roomId;
+      const room = this.getRoom(roomId);
+      if (room.hostId.length === 0) room.hostId = clientId;
     } else {
       throw new Error('Room with this ID does not exist');
     }
@@ -126,6 +143,26 @@ class Rooms {
     } else {
       return lookup;
     }
+  }
+
+  isInWaitingList(clientId: string): boolean {
+    if (this.waitingList[clientId] === undefined) return false;
+    return true;
+  }
+
+  addToWaitingList(socketId: string, roomId: string): void {
+    this.waitingList[socketId] = roomId;
+  }
+
+  removeFromWaiting(socketId: string): void {
+    const roomId = this.waitingList[socketId];
+    const room = this.getRoom(roomId);
+    delete this.waitingList[socketId];
+    delete room.waitingClients[socketId];
+  }
+
+  getWaitingClientRoomId(socketId: string): string {
+    return this.waitingList[socketId];
   }
 
   updateMute(id: string, roomId: string): Client[] {

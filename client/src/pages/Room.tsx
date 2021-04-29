@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { RouteComponentProps, withRouter } from 'react-router-dom';
+import { RouteComponentProps, withRouter, useHistory } from 'react-router-dom';
 import { createConnection, roomSocketEvents } from '../utils/socket-client';
 import { SocketContext } from '../App';
 import Video from '../components/Video';
@@ -11,7 +11,7 @@ import Playlist from '../components/Playlist';
 import RoomParticipants from '../components/RoomParticipants';
 import { MediasoupPeer } from '../utils/MediasoupPeer';
 
-import { Row, Col, Modal, Form, Input, Button, Select } from 'antd';
+import { Row, Col, Modal, Form, Input, Button, Select, Alert, Space, notification, Spin } from 'antd';
 import roomStyles from '../styles/pages/room.module.scss';
 const { Option } = Select;
 
@@ -53,10 +53,12 @@ const Room = ({ location, match }: RoomProps & any) => {
       ? [{ id: clientId, name: clientDisplayName, isMuted: false }]
       : []
   );
+  const [waitingClients, setWaitingClients] = useState<{[socketId: string]: string}>({});
 
   const [enterDisplayName, setEnterDisplayName] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [selectNewAudio, setSelectNewAudio] = useState(false);
+  const [canEnter, setCanEnter] = useState(clientId ? true : false);
 
   const [socket, setSocket] = useState(location.socket ? location.socket : {});
   const [mediasoupPeer, setMediasoupPeer] = useState<MediasoupPeer>();
@@ -73,6 +75,7 @@ const Room = ({ location, match }: RoomProps & any) => {
     clientDispatch,
     videoDispatch,
   };
+  const history = useHistory();
   const remoteAudiosDiv = document.getElementById('remoteAudios');
 
   useEffect(() => {
@@ -87,38 +90,49 @@ const Room = ({ location, match }: RoomProps & any) => {
         type: ClientStates.UPDATE_YOUTUBE_ID,
         youtubeID: roomYoutubeId,
       });
+      setCanEnter(true);
+      setHostEvents(location.socket);
+      setWaitingRoomEvents(location.socket);
       updateClientList(location.socket);
       setSocket(location.socket);
       roomSocketEvents(location.socket, dispatches);
       await startAudioCall(location.socket);
     }
-    // Joining client or Room host that already made connection and refreshed
-    else if (clientId && clientDisplayName) {
+    // Joining client from landing, inputted displayName, or Room client 
+    // that already made connection and refreshed
+    else if ((!clientId && clientDisplayName) || (clientId && clientDisplayName)) {
       const { roomId } = match.params;
       const socketConnection = await createConnection(
         clientDisplayName,
+        '',
+        canEnter,
         roomId
       );
-      setClientId(socketConnection.id);
-      updateClientList(socketConnection);
-      updatePlaylist(socketConnection);
       setSocket(socketConnection);
-      roomSocketEvents(socketConnection, dispatches);
-      await startAudioCall(socketConnection);
-    }
-    // Joining clients: inputted displayName
-    else if (!clientId && clientDisplayName) {
-      const { roomId } = match.params;
-      const socketConnection = await createConnection(
-        clientDisplayName,
-        roomId
-      );
-      setClientId(socketConnection.id);
-      updateClientList(socketConnection);
-      updatePlaylist(socketConnection);
-      setSocket(socketConnection);
-      roomSocketEvents(socketConnection, dispatches);
-      await startAudioCall(socketConnection);
+
+      if (canEnter) {
+        await enterRoom(socketConnection);
+      }
+      else {
+        socketConnection.on('accept', async () => {
+          rejoinSocket(roomId, socketConnection);
+          setCanEnter(true);
+          await enterRoom(socketConnection);
+        });
+        socketConnection.on('decline', () => history.push('/'));
+
+        const callback = async (roomType: string) => {
+          if (roomType !== 'private') {
+            rejoinSocket(roomId, socketConnection);
+            await enterRoom(socketConnection);
+          }
+        };
+
+        socketConnection.emit('getRoomType', {
+          clientName: clientDisplayName,
+          roomId
+        }, callback);
+      }
     }
     // Joining client from direct URL, prompt for displayName
     else if (!clientId && !clientDisplayName) {
@@ -145,6 +159,63 @@ const Room = ({ location, match }: RoomProps & any) => {
   const handleFormSubmit = (displayNameInput: string) => {
     setClientDisplayName(displayNameInput);
     setEnterDisplayName(false);
+  };
+
+  const rejoinSocket = (roomId: string, connectingSocket: SocketIOClient.Socket) => {
+    setCanEnter(true);
+    const clientData = {
+      roomId,
+      clientId: connectingSocket.id,
+      clientName: clientDisplayName,
+      roomType: '',
+      canJoin: true
+    };
+
+    connectingSocket.emit('join', clientData);
+  };
+
+  const setWaitingRoomEvents = (connectingSocket: SocketIOClient.Socket) => {
+    connectingSocket.on('newHost', (hostName: string, hostId: string) => {
+      notification.open({
+        message: 'New Host',
+        description:
+          `${connectingSocket.id !== hostId ? `${hostName} is` : 'You are'} now the host`,
+        duration: 8
+      });
+
+      if (connectingSocket.id === hostId) {
+        setHostEvents(connectingSocket);
+      }
+    });
+  };
+
+  const setHostEvents = (connectingSocket: SocketIOClient.Socket) => {
+    connectingSocket.on('waitingClient', (
+      { socketId, clientName }: {socketId: string, clientName: string}
+    ) => {
+      setWaitingClients({
+        ...waitingClients,
+        [socketId]: clientName
+      });
+    });
+
+    connectingSocket.on('updateWaitingClients', (
+      { waitingClientList, clientIdLeft }: {
+        waitingClientList: {[socketId: string]: string},
+        clientIdLeft: string
+      }) => {
+      setWaitingClients(waitingClientList);
+      if (clientIdLeft.length > 0) notification.close(clientIdLeft);
+    });
+  };
+
+  const enterRoom = async (connectingSocket: SocketIOClient.Socket) => {
+    setWaitingRoomEvents(connectingSocket);
+    setClientId(connectingSocket.id);
+    updateClientList(connectingSocket);
+    updatePlaylist(connectingSocket);
+    roomSocketEvents(connectingSocket, dispatches);
+    await startAudioCall(connectingSocket);
   };
 
   const startAudioCall = async (socket: SocketIOClient.Socket) => {
@@ -219,6 +290,14 @@ const Room = ({ location, match }: RoomProps & any) => {
     setSelectNewAudio(!selectNewAudio);
   };
 
+  const handleNotification = (socketId: string, status: string) => {
+    const newWaitingClients = waitingClients;
+    delete newWaitingClients[socketId];
+    setWaitingClients(newWaitingClients);
+    socket.emit('waitingResponse', { socketId, status });
+    notification.close(socketId);
+  };
+
   return (
     <div className={`${roomStyles.root} container`}>
       {enterDisplayName ? (
@@ -245,6 +324,11 @@ const Room = ({ location, match }: RoomProps & any) => {
             </Form.Item>
           </Form>
         </Modal>
+      ) : !canEnter ? (
+        <div className={roomStyles.waiting}>
+          <h1>Please wait while the host lets you in</h1>
+          <Spin size="large"/>
+        </div>
       ) : (
         <div>
           <div id="remoteAudios" />
@@ -274,6 +358,39 @@ const Room = ({ location, match }: RoomProps & any) => {
                 </div>
               </Modal>
             )}
+          {Object.keys(waitingClients).map((socketId) => (
+            notification.open({
+              key: socketId,
+              message: 'Waiting Room Notification',
+              description: (
+                <Alert
+                  message=""
+                  description={`${waitingClients[socketId]} wants to join the room`}
+                  action={
+                    <Space direction="vertical">
+                      <Button
+                        size="small"
+                        type="primary"
+                        onClick={() => handleNotification(socketId, 'accept')}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="small"
+                        danger type="ghost"
+                        onClick={() => handleNotification(socketId, 'decline')}
+                      >
+                        Decline
+                      </Button>
+                    </Space>
+                  }
+                />
+              ),
+              placement: 'topRight',
+              duration: 0,
+              closeIcon : (<div/>),
+            })
+          ))}
 
           <Row gutter={16} className={roomStyles.main__content}>
             <Col sm={16} className={roomStyles.left__col}>

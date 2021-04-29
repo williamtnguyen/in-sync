@@ -22,3 +22,10 @@
   display: flex;
   justify-content: center;
 }
+
+.waiting {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
