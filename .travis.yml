@@ -13,6 +13,8 @@ install:
   - cd ..
   - cd server
   - npm i
+  - npm ci 
+  - 
 
 script:
   - npm run lint
@@ -20,3 +22,4 @@ script:
   - cd client
   - npm run lint
   - npm run build
+  - /node_modules/.bin/cypress run --record
