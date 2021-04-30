@@ -403,7 +403,7 @@ const Room = ({ location, match }: RoomProps & any) => {
               <Video youtubeID={clientData.youtubeID} socket={socket} />
               <Playlist socket={socket} />
             </Col>
-            <Col sm={8}>
+            <Col sm={8} className={roomStyles.chat__col}>
               <Chat socket={socket} />
             </Col>
           </Row>

@@ -7,7 +7,7 @@ export interface MessagesProps {
 interface MessageProps {
   children: string;
   user: string;
-  key: string;
+  key: number;
 }
 
 interface Message {
@@ -62,8 +62,8 @@ const Messages = (props: MessagesProps) => {
     >
       {messages &&
         messages.length > 0 &&
-        messages.map((message: Message) => (
-          <Message user={message.client} key={message.clientId}>
+        messages.map((message: Message, index: number) => (
+          <Message user={message.client} key={index}>
             {message.message}
           </Message>
         ))}

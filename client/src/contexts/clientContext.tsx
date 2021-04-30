@@ -26,7 +26,7 @@ export const ClientContextProvider = (props: any) => {
   const initialState = {
     youtubeID: '',
     clientList: [],
-    messages: [],
+    messages: [{client: null, clientId: '123', message: 'hello'}, {client: 'hello', clientId: '123', message: 'hello'}],
     playlist: [],
   };
 
