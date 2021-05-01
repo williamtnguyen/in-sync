@@ -9,7 +9,7 @@ export const createClientNotifier = (
 };
 
 export const createUserMessage = (
-  client: string,
+  client: string | null,
   clientId: string,
   message: string
 ): object => {

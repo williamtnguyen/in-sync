@@ -26,7 +26,7 @@ const Chat = (props: ChatProps) => {
 
       <Form form={form} layout="inline" onFinish={onSend}>
         <Form.Item name="message" className={chatStyles.message__input}>
-          <Input placeholder="Send a message..." autoComplete="off" />
+          <Input placeholder="Send a message..." autoComplete="off" required />
         </Form.Item>
         <Form.Item className={chatStyles.send__btn}>
           <Button type="primary" shape="round" htmlType="submit">

@@ -76,8 +76,6 @@ export const roomSocketEvents = (
         }
         break;
 
-      // current issue: case 'newMessage' never invoked
-      // nothing happens even when commented out
       case 'clientMessage':
         clientDispatch({
           type: ClientStates.UPDATE_CHAT_MESSAGES,
