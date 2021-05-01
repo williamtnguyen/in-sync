@@ -36,27 +36,8 @@ const socketHandler = async (io: WebSocketServer) => {
         await Rooms.addRoom(roomId, youtubeID, worker, roomType);
         Rooms.addClient(roomId, clientId, clientName);
 
-      // TODO: not sure if this is listened to on client side
-      socket.broadcast.to(roomId).emit(
-        'notifyClient',
-        createClientNotifier('clientJoin', {
-          roomId,
-          clientId,
-          clientName,
-        })
-      );
-
-      io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
-      io.to(roomId).emit('updatePlaylist', Rooms.getPlaylistVideoIds(roomId));
-      io.to(roomId).emit(
-        'notifyClient',
-        createUserMessage(null, clientId, `${clientName} entered`)
-      );
-
-      // TODO: refactor logic without youtubeID in general
-      if (!youtubeID) {
-        const room = Rooms.getRoom(roomId);
-        socket.emit(
+        // TODO: not sure if this is listened to on client side
+        socket.broadcast.to(roomId).emit(
           'notifyClient',
           createClientNotifier('clientJoin', {
             roomId,
@@ -67,14 +48,19 @@ const socketHandler = async (io: WebSocketServer) => {
 
         io.to(roomId).emit('updateClientList', Rooms.getRoomClients(roomId));
         io.to(roomId).emit('updatePlaylist', Rooms.getPlaylistVideoIds(roomId));
+        io.to(roomId).emit(
+          'notifyClient',
+          createUserMessage(null, clientId, `${clientName} entered`)
+        );
 
         // TODO: refactor logic without youtubeID in general
         if (!youtubeID) {
-          const room = Rooms.getRoom(roomId);
           socket.emit(
             'notifyClient',
-            createClientNotifier('CHANGE_VIDEO', {
-              youtubeID: room.youtubeID,
+            createClientNotifier('clientJoin', {
+              roomId,
+              clientId,
+              clientName,
             })
           );
         }
@@ -167,12 +153,12 @@ const socketHandler = async (io: WebSocketServer) => {
     socket.on('videoStateChange', (data) => {
       const client = Rooms.getClient(socket.id);
       let message = `${client.name} `;
-      switch(data.type) {
+      switch (data.type) {
         case('PLAY_VIDEO'):
-          message += 'started the video'; 
+          message += 'started the video';
           break;
         case('PAUSE_VIDEO'):
-          message += 'paused the video'; 
+          message += 'paused the video';
           break;
       }
 
@@ -225,12 +211,17 @@ const socketHandler = async (io: WebSocketServer) => {
     socket.on('deletePlaylistItem', (videoIndex: number) => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
+      const message = `${client.name} deleted a playlist item`;
 
       Rooms.deleteVideo(roomId, videoIndex);
       const newPlaylist: string[] = Rooms.getPlaylistVideoIds(roomId);
 
       if (client) {
         io.to(roomId).emit('notifyClient', deletePlaylistItem(newPlaylist));
+        io.to(Rooms.getClientRoomId(client.id)).emit(
+          'notifyClient',
+          createUserMessage(null, client.id, message)
+        );
       }
     });
 
@@ -238,7 +229,7 @@ const socketHandler = async (io: WebSocketServer) => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
       const youtubeID = Rooms.changeVideo(roomId, videoIndex);
-      let message = `${client.name} changed the video`;
+      const message = `${client.name} changed the video`;
 
       io.to(roomId).emit(
         'notifyClient',
@@ -255,11 +246,16 @@ const socketHandler = async (io: WebSocketServer) => {
     socket.on('insertVideoAtIndex', ({ oldIndex, newIndex }) => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
+      const message = `${client.name} swapped playlist item #${oldIndex + 1} with item #${newIndex + 1}`;
 
       Rooms.moveVideo(roomId, oldIndex, newIndex);
       const newPlaylist: string[] = Rooms.getPlaylistVideoIds(roomId);
 
       io.to(roomId).emit('notifyClient', movePlaylistItem(newPlaylist));
+      io.to(Rooms.getClientRoomId(client.id)).emit(
+        'notifyClient',
+        createUserMessage(null, client.id, message)
+      );
     });
 
     // -------------------------- WAITING ROOM EVENTS --------------------------
@@ -297,7 +293,7 @@ const socketHandler = async (io: WebSocketServer) => {
       const roomId = Rooms.getClientRoomId(client.id);
       const newClients = Rooms.updateMute(id, roomId);
       let message = `${client.name} `;
-      client.isMuted ? message += 'muted' : message += 'unmuted'; 
+      client.isMuted ? message += 'muted' : message += 'unmuted';
 
       io.to(roomId).emit('updateClientList', newClients);
       io.to(Rooms.getClientRoomId(client.id)).emit(
