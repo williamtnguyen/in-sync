@@ -8,7 +8,7 @@
 
 .main__content {
   height: 100vh;
-  width: 100%;
+  width: auto;
   padding: 1rem 0;
 }
 
@@ -21,4 +21,15 @@
 .audio__modal {
   display: flex;
   justify-content: center;
+}
+
+.waiting {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.chat__col {
+  max-height: 100%;
 }

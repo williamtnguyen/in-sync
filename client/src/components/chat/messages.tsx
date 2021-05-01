@@ -7,7 +7,7 @@ export interface MessagesProps {
 interface MessageProps {
   children: string;
   user: string;
-  key: string;
+  key: number;
 }
 
 interface Message {
@@ -62,8 +62,8 @@ const Messages = (props: MessagesProps) => {
     >
       {messages &&
         messages.length > 0 &&
-        messages.map((message: Message) => (
-          <Message user={message.client} key={message.clientId}>
+        messages.map((message: Message, index: number) => (
+          <Message user={message.client} key={index}>
             {message.message}
           </Message>
         ))}
@@ -87,7 +87,7 @@ const Message = (props: MessageProps) => {
     >
       <div
         style={{
-          fontWeight: 'normal',
+          fontWeight: 'bold',
           fontSize: '0.85em',
           marginBottom: '3px',
           marginLeft: '8px',
@@ -114,16 +114,17 @@ const Message = (props: MessageProps) => {
         display: 'flex',
         flexDirection: 'column',
         fontSize: '0.9em',
-        marginBottom: '10px',
+        marginBottom: '2px',
         boxSizing: 'border-box',
         // if admin, text-align: center, color: grey
       }}
     >
       <div
         style={{
-          padding: '8px 10px',
+          padding: '5px 10px',
           fontWeight: 'normal',
-          fontSize: '0.9em',
+          fontSize: '0.78rem',
+          color: '#787878',
           backgroundColor: 'transparent', // or #eee if admin
           width: 'auto', // or 80% if admin
           borderRadius: '15px',
