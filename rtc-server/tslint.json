@@ -14,7 +14,8 @@
     "no-var-requires": false,
     "variable-name": false,
     "max-classes-per-file": false,
-    "no-else-after-return": false
+    "no-else-after-return": false,
+    "ter-arrow-parens": false
   },
   "rulesDirectory": []
 }

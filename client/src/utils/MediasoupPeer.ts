@@ -330,8 +330,9 @@ export class MediasoupPeer {
     this.socket.emit('producerClosed', {
       producerId: this.producerId,
     });
-    if (this.producers.get(this.producerId) === undefined)
+    if (this.producers.get(this.producerId) === undefined) {
       throw new Error('Producer map is undefined');
+    }
     this.producers.get(this.producerId)?.close();
     this.producers.delete(this.producerId);
     this.producerId = undefined;

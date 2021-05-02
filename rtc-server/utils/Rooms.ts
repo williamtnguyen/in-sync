@@ -3,7 +3,8 @@ const mediasoupConfig = require('../mediasoup-config');
 import { Server as WebSocketServer, Socket } from 'socket.io';
 
 interface RtcClient {
-  redisClientId: string; // the id of session socket. allows 1:1 mapping from voice server to session server
+  // the id of session socket. allows 1:1 mapping from voice server to session server
+  redisClientId: string;
   transports: Map<string, mediasoupType.Transport>;
   consumers: Map<string, mediasoupType.Consumer>;
   producers: Map<string, mediasoupType.Producer>;
@@ -108,7 +109,7 @@ class Rooms {
     }
     if (this.roomMap[roomId]) {
       const newClient: RtcClient = {
-        redisClientId: redisClientId,
+        redisClientId,
         transports: new Map(),
         consumers: new Map(),
         producers: new Map(),
@@ -237,8 +238,9 @@ class Rooms {
       rtpCapabilities
     );
 
-    if (this.audioObserver === undefined)
+    if (this.audioObserver === undefined) {
       throw new Error('Audio observer is undefined');
+    }
     this.audioObserver.addProducer({ producerId });
     this.setAudioObserverEvents(room, io, roomId);
 
@@ -295,7 +297,7 @@ class Rooms {
   setAudioObserverEvents(room: Room, io: WebSocketServer, roomId: string) {
     this.audioObserver?.on('volumes', (volumes) => {
       const clientVolumes: { [clientId: string]: number } = {};
-      let clients: string[] = [];
+      const clients: string[] = [];
       for (const volume of volumes) {
         clientVolumes[volume.producer.appData.clientId] = volume.volume;
       }

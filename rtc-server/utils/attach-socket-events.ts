@@ -108,8 +108,9 @@ async function attachSocketEvents(io: WebSocketServer) {
           rtpCapabilities
         );
 
-        if (consumerResult === undefined)
+        if (consumerResult === undefined) {
           throw new Error('Unable to create consumer');
+        }
         const { consumerParams } = consumerResult;
         callback(consumerParams);
       }

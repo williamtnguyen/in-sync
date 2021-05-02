@@ -3,7 +3,8 @@ const rtcServerDomain = 'http://localhost:4000';
 
 export const openRtcSocket = (
   roomId: string,
-  redisClientId: string // the id of session socket. allows 1:1 mapping from voice server to session server
+  // the id of session socket. allows 1:1 mapping from voice server to session server
+  redisClientId: string
 ): Promise<SocketIOClient.Socket> => {
   return new Promise((resolve) => {
     const socket = io(rtcServerDomain);
@@ -11,7 +12,7 @@ export const openRtcSocket = (
     socket.on('connect', () => {
       const clientData = {
         roomId: roomId ? roomId : socket.id,
-        redisClientId: redisClientId,
+        redisClientId,
       };
 
       socket.emit('join', clientData);
