@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { RouteComponentProps, withRouter, useHistory } from 'react-router-dom';
-import { createConnection, roomSocketEvents } from '../utils/socket-client';
+import {
+  openSessionSocket,
+  subscribeToRoomEvents,
+} from '../utils/session-socket-client';
+import { openRtcSocket } from '../utils/rtc-socket-client';
 import { SocketContext } from '../App';
 import Video from '../components/Video';
 import { ClientContext } from '../contexts/clientContext';
@@ -11,7 +15,19 @@ import Playlist from '../components/Playlist';
 import RoomParticipants from '../components/RoomParticipants';
 import { MediasoupPeer } from '../utils/MediasoupPeer';
 
-import { Row, Col, Modal, Form, Input, Button, Select, Alert, Space, notification, Spin } from 'antd';
+import {
+  Row,
+  Col,
+  Modal,
+  Form,
+  Input,
+  Button,
+  Select,
+  Alert,
+  Space,
+  notification,
+  Spin,
+} from 'antd';
 import roomStyles from '../styles/pages/room.module.scss';
 const { Option } = Select;
 
@@ -53,14 +69,18 @@ const Room = ({ location, match }: RoomProps & any) => {
       ? [{ id: clientId, name: clientDisplayName, isMuted: false }]
       : []
   );
-  const [waitingClients, setWaitingClients] = useState<{[socketId: string]: string}>({});
+  const [waitingClients, setWaitingClients] = useState<{
+    [socketId: string]: string;
+  }>({});
 
   const [enterDisplayName, setEnterDisplayName] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [selectNewAudio, setSelectNewAudio] = useState(false);
   const [canEnter, setCanEnter] = useState(clientId ? true : false);
 
-  const [socket, setSocket] = useState(location.socket ? location.socket : {});
+  const [sessionSocket, setSessionSocket] = useState(
+    location.socket ? location.socket : {}
+  );
   const [mediasoupPeer, setMediasoupPeer] = useState<MediasoupPeer>();
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<{
@@ -91,29 +111,31 @@ const Room = ({ location, match }: RoomProps & any) => {
         youtubeID: roomYoutubeId,
       });
       setCanEnter(true);
-      setHostEvents(location.socket);
-      setWaitingRoomEvents(location.socket);
-      updateClientList(location.socket);
-      setSocket(location.socket);
-      roomSocketEvents(location.socket, dispatches);
-      await startAudioCall(location.socket);
+      // attachHostNotifs(location.socket);
+      setSessionSocket(location.socket);
+      subscribeToHostEvents(location.socket);
+      subscribeToClientListUpdates(location.socket);
+      subscribeToRoomEvents(location.socket, dispatches);
+      await startAudioCall(location.socket.id);
     }
-    // Joining client from landing, inputted displayName, or Room client 
+    // Joining client from landing, inputted displayName, or Room client
     // that already made connection and refreshed
-    else if ((!clientId && clientDisplayName) || (clientId && clientDisplayName)) {
+    else if (
+      (!clientId && clientDisplayName) ||
+      (clientId && clientDisplayName)
+    ) {
       const { roomId } = match.params;
-      const socketConnection = await createConnection(
+      const socketConnection = await openSessionSocket(
         clientDisplayName,
         '',
         canEnter,
         roomId
       );
-      setSocket(socketConnection);
+      setSessionSocket(socketConnection);
 
       if (canEnter) {
         await enterRoom(socketConnection);
-      }
-      else {
+      } else {
         socketConnection.on('accept', async () => {
           rejoinSocket(roomId, socketConnection);
           setCanEnter(true);
@@ -121,17 +143,18 @@ const Room = ({ location, match }: RoomProps & any) => {
         });
         socketConnection.on('decline', () => history.push('/'));
 
-        const callback = async (roomType: string) => {
-          if (roomType !== 'private') {
-            rejoinSocket(roomId, socketConnection);
-            await enterRoom(socketConnection);
-          }
+        const admitClient = async () => {
+          rejoinSocket(roomId, socketConnection);
+          await enterRoom(socketConnection);
         };
-
-        socketConnection.emit('getRoomType', {
-          clientName: clientDisplayName,
-          roomId
-        }, callback);
+        socketConnection.emit(
+          'getRoomType',
+          {
+            clientName: clientDisplayName,
+            roomId,
+          },
+          admitClient
+        );
       }
     }
     // Joining client from direct URL, prompt for displayName
@@ -140,14 +163,17 @@ const Room = ({ location, match }: RoomProps & any) => {
     }
   };
 
-  // Subscribes to updateClientList broadcasts from WebSocketServer
-  const updateClientList = (connectingSocket: SocketIOClient.Socket) => {
+  const subscribeToClientListUpdates = (
+    connectingSocket: SocketIOClient.Socket
+  ) => {
     connectingSocket.on('updateClientList', (newClientList: Client[]) => {
       setClients(newClientList);
     });
   };
 
-  const updatePlaylist = (connectingSocket: SocketIOClient.Socket) => {
+  const subscribeToPlaylistUpdates = (
+    connectingSocket: SocketIOClient.Socket
+  ) => {
     connectingSocket.on('updatePlaylist', (newPlaylist: string[]) => {
       clientDispatch({
         type: ClientStates.DELETE_VIDEO,
@@ -156,71 +182,79 @@ const Room = ({ location, match }: RoomProps & any) => {
     });
   };
 
-  const handleFormSubmit = (displayNameInput: string) => {
-    setClientDisplayName(displayNameInput);
-    setEnterDisplayName(false);
+  const subscribeToHostEvents = (connectingSocket: SocketIOClient.Socket) => {
+    connectingSocket.on('newHost', (hostName: string, hostId: string) => {
+      notification.open({
+        message: 'New Host',
+        description: `${
+          connectingSocket.id !== hostId ? `${hostName} is` : 'You are'
+        } now the host`,
+        duration: 8,
+      });
+
+      if (connectingSocket.id === hostId) {
+        attachHostNotifs(connectingSocket);
+      }
+    });
   };
 
-  const rejoinSocket = (roomId: string, connectingSocket: SocketIOClient.Socket) => {
+  const attachHostNotifs = (connectingSocket: SocketIOClient.Socket) => {
+    connectingSocket.on(
+      'waitingClient',
+      ({
+        waitingClients,
+      }: {
+        waitingClients: { [socketId: string]: string };
+      }) => {
+        setWaitingClients(waitingClients);
+      }
+    );
+
+    connectingSocket.on(
+      'updateWaitingClients',
+      ({
+        waitingClientList,
+        clientIdLeft,
+      }: {
+        waitingClientList: { [socketId: string]: string };
+        clientIdLeft: string;
+      }) => {
+        setWaitingClients(waitingClientList);
+        if (clientIdLeft.length > 0) notification.close(clientIdLeft);
+      }
+    );
+  };
+
+  const rejoinSocket = (
+    roomId: string,
+    connectingSocket: SocketIOClient.Socket
+  ) => {
     setCanEnter(true);
     const clientData = {
       roomId,
       clientId: connectingSocket.id,
       clientName: clientDisplayName,
       roomType: '',
-      canJoin: true
+      canJoin: true,
     };
 
     connectingSocket.emit('join', clientData);
   };
 
-  const setWaitingRoomEvents = (connectingSocket: SocketIOClient.Socket) => {
-    connectingSocket.on('newHost', (hostName: string, hostId: string) => {
-      notification.open({
-        message: 'New Host',
-        description:
-          `${connectingSocket.id !== hostId ? `${hostName} is` : 'You are'} now the host`,
-        duration: 8
-      });
-
-      if (connectingSocket.id === hostId) {
-        setHostEvents(connectingSocket);
-      }
-    });
-  };
-
-  const setHostEvents = (connectingSocket: SocketIOClient.Socket) => {
-    connectingSocket.on('waitingClient', (
-      { socketId, clientName }: {socketId: string, clientName: string}
-    ) => {
-      setWaitingClients({
-        ...waitingClients,
-        [socketId]: clientName
-      });
-    });
-
-    connectingSocket.on('updateWaitingClients', (
-      { waitingClientList, clientIdLeft }: {
-        waitingClientList: {[socketId: string]: string},
-        clientIdLeft: string
-      }) => {
-      setWaitingClients(waitingClientList);
-      if (clientIdLeft.length > 0) notification.close(clientIdLeft);
-    });
-  };
-
   const enterRoom = async (connectingSocket: SocketIOClient.Socket) => {
-    setWaitingRoomEvents(connectingSocket);
     setClientId(connectingSocket.id);
-    updateClientList(connectingSocket);
-    updatePlaylist(connectingSocket);
-    roomSocketEvents(connectingSocket, dispatches);
-    await startAudioCall(connectingSocket);
+    subscribeToHostEvents(connectingSocket);
+    subscribeToClientListUpdates(connectingSocket);
+    subscribeToPlaylistUpdates(connectingSocket);
+    subscribeToRoomEvents(connectingSocket, dispatches);
+    await startAudioCall(connectingSocket.id);
   };
 
-  const startAudioCall = async (socket: SocketIOClient.Socket) => {
+  const startAudioCall = async (redisClientId: string) => {
+    const { roomId } = match.params;
+    const rtcSocket = await openRtcSocket(roomId, redisClientId);
     const deviceId = await setMediaDevices();
-    await startMediasoup(socket, deviceId);
+    await startMediasoup(rtcSocket, deviceId);
   };
 
   const setMediaDevices = async () => {
@@ -242,10 +276,14 @@ const Room = ({ location, match }: RoomProps & any) => {
   };
 
   const startMediasoup = async (
-    socket: SocketIOClient.Socket,
+    rtcSocket: SocketIOClient.Socket,
     audioDeviceId: string
   ) => {
-    const peer = new MediasoupPeer(socket, remoteAudiosDiv);
+    const peer = new MediasoupPeer(
+      rtcSocket,
+      sessionSocket.id,
+      remoteAudiosDiv
+    );
     setMediasoupPeer(peer);
     await peer.init();
     await peer.produce(audioDeviceId);
@@ -280,10 +318,15 @@ const Room = ({ location, match }: RoomProps & any) => {
 
     const newClients = clients;
     for (const client of newClients) {
-      if (socket.id === client.id) client.isMuted = !client.isMuted;
+      if (sessionSocket.id === client.id) client.isMuted = !client.isMuted;
     }
     setClients(newClients);
-    socket.emit('mute', { id: socket.id });
+    sessionSocket.emit('mute', { id: sessionSocket.id });
+  };
+
+  const handleFormSubmit = (displayNameInput: string) => {
+    setClientDisplayName(displayNameInput);
+    setEnterDisplayName(false);
   };
 
   const handleSelectAudioModal = () => {
@@ -294,7 +337,7 @@ const Room = ({ location, match }: RoomProps & any) => {
     const newWaitingClients = waitingClients;
     delete newWaitingClients[socketId];
     setWaitingClients(newWaitingClients);
-    socket.emit('waitingResponse', { socketId, status });
+    sessionSocket.emit('waitingResponse', { socketId, status });
     notification.close(socketId);
   };
 
@@ -327,38 +370,37 @@ const Room = ({ location, match }: RoomProps & any) => {
       ) : !canEnter ? (
         <div className={roomStyles.waiting}>
           <h1>Please wait while the host lets you in</h1>
-          <Spin size="large"/>
+          <Spin size="large" />
         </div>
       ) : (
         <div>
           <div id="remoteAudios" />
-          {selectNewAudio &&
-            selectedAudioDevice.deviceId && (
-              <Modal
-                title="Select a new input device"
-                onCancel={handleSelectAudioModal}
-                visible={selectNewAudio}
-                footer={null}
-                centered
-              >
-                <div className={roomStyles.audio__modal}>
-                  <Select
-                    defaultValue={audioDevices[0].deviceName}
-                    onChange={handleAudioSelect}
-                  >
-                    {audioDevices.map((audioDevice) => (
-                      <Option
-                        key={audioDevice.deviceName}
-                        value={audioDevice.deviceId}
-                      >
-                        {audioDevice.deviceName}
-                      </Option>
-                    ))}
-                  </Select>
-                </div>
-              </Modal>
-            )}
-          {Object.keys(waitingClients).map((socketId) => (
+          {selectNewAudio && selectedAudioDevice.deviceId && (
+            <Modal
+              title="Select a new input device"
+              onCancel={handleSelectAudioModal}
+              visible={selectNewAudio}
+              footer={null}
+              centered
+            >
+              <div className={roomStyles.audio__modal}>
+                <Select
+                  defaultValue={audioDevices[0].deviceName}
+                  onChange={handleAudioSelect}
+                >
+                  {audioDevices.map((audioDevice) => (
+                    <Option
+                      key={audioDevice.deviceName}
+                      value={audioDevice.deviceId}
+                    >
+                      {audioDevice.deviceName}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+            </Modal>
+          )}
+          {Object.keys(waitingClients).map((socketId) =>
             notification.open({
               key: socketId,
               message: 'Waiting Room Notification',
@@ -377,7 +419,8 @@ const Room = ({ location, match }: RoomProps & any) => {
                       </Button>
                       <Button
                         size="small"
-                        danger type="ghost"
+                        danger
+                        type="ghost"
                         onClick={() => handleNotification(socketId, 'decline')}
                       >
                         Decline
@@ -388,9 +431,9 @@ const Room = ({ location, match }: RoomProps & any) => {
               ),
               placement: 'topRight',
               duration: 0,
-              closeIcon : (<div/>),
+              closeIcon: <div />,
             })
-          ))}
+          )}
 
           <Row gutter={16} className={roomStyles.main__content}>
             <Col sm={16} className={roomStyles.left__col}>
@@ -400,11 +443,11 @@ const Room = ({ location, match }: RoomProps & any) => {
                 handleMute={handleMute}
                 handleSelectAudioModal={handleSelectAudioModal}
               />
-              <Video youtubeID={clientData.youtubeID} socket={socket} />
-              <Playlist socket={socket} />
+              <Video youtubeID={clientData.youtubeID} socket={sessionSocket} />
+              <Playlist socket={sessionSocket} />
             </Col>
             <Col sm={8} className={roomStyles.chat__col}>
-              <Chat socket={socket} />
+              <Chat socket={sessionSocket} />
             </Col>
           </Row>
         </div>

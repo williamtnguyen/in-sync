@@ -1,26 +1,25 @@
 import { Dispatch } from 'react';
 import io from 'socket.io-client';
 import { ClientStates, VideoStates } from './enums';
-const socketServerDomain = 'http://localhost:5000';
+const sessionServerDomain = 'http://localhost:5000';
 
 // Establishes a WebSocket connection and resolves the socket object
-export const createConnection = (
+export const openSessionSocket = (
   displayName: string,
   roomType: string,
   canJoin: boolean,
   roomId?: string
 ): Promise<SocketIOClient.Socket> => {
   return new Promise((resolve) => {
-    const socket = io(socketServerDomain);
+    const socket = io(sessionServerDomain);
 
     socket.on('connect', () => {
       const clientData = {
         roomId: roomId ? roomId : socket.id,
-        // if a clientID is present in sessionStorage, use it again
         clientId: socket.id,
         clientName: displayName,
         roomType,
-        canJoin
+        canJoin,
       };
 
       socket.emit('join', clientData);
@@ -34,7 +33,7 @@ interface DispatchTypes {
   videoDispatch: Dispatch<any>;
 }
 
-export const roomSocketEvents = (
+export const subscribeToRoomEvents = (
   socket: SocketIOClient.Socket,
   dispatch: DispatchTypes
 ) => {

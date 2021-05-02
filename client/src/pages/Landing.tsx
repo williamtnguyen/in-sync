@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { createConnection } from '../utils/socket-client';
+import { openSessionSocket } from '../utils/session-socket-client';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 import { SocketContext } from '../App';
 import CreateSessionForm from '../components/CreateSessionForm';
@@ -13,10 +13,14 @@ const { TabPane } = Tabs;
 const Landing = (props: RouteComponentProps & any) => {
   const { setClientId, setClientDisplayName } = useContext(SocketContext);
 
-  const startSession = async (
-    { displayName, roomType }: { displayName: string, roomType: string }
-  ) => {
-    const newSocket = await createConnection(displayName, roomType, true);
+  const startSession = async ({
+    displayName,
+    roomType,
+  }: {
+    displayName: string;
+    roomType: string;
+  }) => {
+    const newSocket = await openSessionSocket(displayName, roomType, true);
 
     setClientId(newSocket.id);
     setClientDisplayName(displayName);

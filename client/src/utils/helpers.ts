@@ -15,7 +15,8 @@ export const validVideoURL = (url: string) => {
 
 export const mediasoupEvent = async (
   socket: SocketIOClient.Socket,
-  event: string, data = {}
+  event: string,
+  data = {}
 ): Promise<any> => {
   return new Promise((resolve) => {
     socket.emit(event, data, resolve);
