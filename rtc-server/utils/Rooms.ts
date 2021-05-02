@@ -16,8 +16,13 @@ interface Room {
   hostId: string;
 }
 
-interface RtcClientMap {
+interface RtcClientRoomMap {
   [clientId: string]: string;
+}
+
+// Maps RTC socket id to session socket id
+interface RtcClientSessionMap {
+  [rtcSocketId: string]: string;
 }
 
 interface RoomMap {
@@ -29,12 +34,14 @@ interface RoomMap {
  */
 class Rooms {
   private roomMap: RoomMap;
-  private clientMap: RtcClientMap;
+  private clientRoomMap: RtcClientRoomMap;
+  private rtcSessionMap: RtcClientSessionMap;
   private audioObserver: mediasoupType.AudioLevelObserver | undefined;
 
   constructor() {
     this.roomMap = {};
-    this.clientMap = {};
+    this.clientRoomMap = {};
+    this.rtcSessionMap = {};
     this.audioObserver = undefined;
   }
 
@@ -50,8 +57,8 @@ class Rooms {
   }
 
   getClientRoomId(clientId: string): string {
-    if (this.clientMap[clientId]) {
-      return this.clientMap[clientId];
+    if (this.clientRoomMap[clientId]) {
+      return this.clientRoomMap[clientId];
     }
     throw new Error('This client ID does not exist');
   }
@@ -73,6 +80,10 @@ class Rooms {
     return this.roomMap[roomId].router.rtpCapabilities;
   }
 
+  getRedisClientId(rtcSocketId: string) {
+    return this.rtcSessionMap[rtcSocketId];
+  }
+
   async addRoom(roomId: string, worker: mediasoupType.Worker) {
     if (!this.roomMap[roomId]) {
       const mediaCodecs = mediasoupConfig.mediasoup.router.codecs;
@@ -91,23 +102,25 @@ class Rooms {
     }
   }
 
-  addClient(roomId: string, clientId: string) {
-    if (this.clientMap[clientId]) {
+  addClient(roomId: string, rtcSocketId: string, redisClientId: string) {
+    if (this.clientRoomMap[redisClientId]) {
       return;
     }
     if (this.roomMap[roomId]) {
       const newClient: RtcClient = {
-        redisClientId: clientId,
+        redisClientId: redisClientId,
         transports: new Map(),
         consumers: new Map(),
         producers: new Map(),
         rtpCapabilities: undefined,
       };
+
       this.roomMap[roomId].clients.push(newClient);
-      this.clientMap[clientId] = roomId;
+      this.clientRoomMap[redisClientId] = roomId;
+      this.rtcSessionMap[rtcSocketId] = redisClientId;
+
       const room = this.getRoom(roomId);
-      if (!room.hostId) room.hostId = clientId;
-      console.log(this.roomMap[roomId], this.roomMap);
+      if (!room.hostId) room.hostId = redisClientId;
     } else {
       throw new Error('Room with this ID does not exist');
     }
@@ -286,7 +299,7 @@ class Rooms {
       for (const volume of volumes) {
         clientVolumes[volume.producer.appData.clientId] = volume.volume;
       }
-      room.clients.forEach(client => clients.push(client.redisClientId));
+      room.clients.forEach((client) => clients.push(client.redisClientId));
       io.to(roomId).emit('activeSpeaker', {
         clientVolumes,
         clients,
@@ -314,16 +327,18 @@ class Rooms {
     client.producers.delete(producerId);
   }
 
-  removeClient(roomId: string, clientId: string) {
-    if (!this.clientMap[clientId]) {
+  removeClient(roomId: string, rtcSocketId: string, redisClientId: string) {
+    if (!this.clientRoomMap[redisClientId]) {
       return;
     }
     if (this.roomMap[roomId]) {
       const clientList: RtcClient[] = this.getRoomClients(roomId);
       for (let i = 0; i < clientList.length; i += 1) {
         const client = clientList[i];
-        if (client.redisClientId === clientId) {
+        if (client.redisClientId === redisClientId) {
           clientList.splice(i, 1);
+          delete this.clientRoomMap[redisClientId];
+          delete this.rtcSessionMap[rtcSocketId];
           return clientList;
         }
       }

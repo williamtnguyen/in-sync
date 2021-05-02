@@ -11,7 +11,7 @@ export const openRtcSocket = (
     socket.on('connect', () => {
       const clientData = {
         roomId: roomId ? roomId : socket.id,
-        clientId: redisClientId,
+        redisClientId: redisClientId,
       };
 
       socket.emit('join', clientData);

@@ -11,11 +11,9 @@ export class MediasoupPeer {
   private producerId: string | undefined;
   private remoteAudiosDiv: HTMLElement | null;
   private tempClients: string[] | undefined;
-  private redisClientId: string;
 
   constructor(
     rtcSocket: SocketIOClient.Socket,
-    redisClientId: string, // the id of session socket. allows 1:1 mapping from voice server to session server
     remoteAudiosDiv: HTMLElement | null
   ) {
     this.socket = rtcSocket;
@@ -27,7 +25,6 @@ export class MediasoupPeer {
     this.producerId = undefined;
     this.remoteAudiosDiv = remoteAudiosDiv;
     this.tempClients = undefined;
-    this.redisClientId = redisClientId;
   }
 
   // ----------------------------- FUNCTIONS FOR INITIALIZATION -----------------------------
@@ -39,13 +36,12 @@ export class MediasoupPeer {
   initMediasoupData = async () => {
     const rtpCapabilities = await mediasoupEvent(
       this.socket,
-      'getRtpCapabilities',
-      { redisClientId: this.redisClientId }
+      'getRtpCapabilities'
     );
     await this.createDevice(rtpCapabilities);
     await this.createProducerTransport();
     await this.createConsumerTransport();
-    this.socket.emit('getProducers', this.redisClientId);
+    this.socket.emit('getProducers');
   };
 
   initSocket() {
@@ -87,8 +83,8 @@ export class MediasoupPeer {
       }
     );
 
+    // Runs only when rtc-server is taken down
     this.socket.on('disconnect', () => {
-      this.socket.emit('removeClientFromServer', this.redisClientId);
       this.consumerTransport?.close();
       this.producerTransport?.close();
       this.socket.off('disconnect');
@@ -108,7 +104,6 @@ export class MediasoupPeer {
       const transport = await mediasoupEvent(this.socket, 'createTransport', {
         forceTcp: false,
         rtpCapabilities: this.device.rtpCapabilities,
-        redisClientId: this.redisClientId,
       });
 
       if (transport.error) throw new Error(transport.error);
@@ -130,7 +125,6 @@ export class MediasoupPeer {
           await mediasoupEvent(this.socket, 'connectTransport', {
             transportId: transport.id,
             dtlsParameters,
-            redisClientId: this.redisClientId,
           });
           try {
             callback();
@@ -155,7 +149,6 @@ export class MediasoupPeer {
                 producerTransportId: this.producerTransport.id,
                 mediaType: kind,
                 rtpParameters,
-                redisClientId: this.redisClientId,
               }
             );
 
@@ -184,7 +177,6 @@ export class MediasoupPeer {
   createConsumerTransport = async () => {
     const transport = await mediasoupEvent(this.socket, 'createTransport', {
       forceTcp: false,
-      redisClientId: this.redisClientId,
     });
 
     if (transport.error) {
@@ -211,7 +203,6 @@ export class MediasoupPeer {
         await mediasoupEvent(this.socket, 'connectTransport', {
           transportId: this.consumerTransport?.id,
           dtlsParameters,
-          redisClientId: this.redisClientId,
         });
         try {
           callback();
@@ -309,7 +300,6 @@ export class MediasoupPeer {
         rtpCapabilities,
         consumerTransportId: this.consumerTransport?.id,
         producerId,
-        redisClientId: this.redisClientId,
       }
     );
 
@@ -339,7 +329,6 @@ export class MediasoupPeer {
 
     this.socket.emit('producerClosed', {
       producerId: this.producerId,
-      redisClientId: this.redisClientId,
     });
     if (this.producers.get(this.producerId) === undefined)
       throw new Error('Producer map is undefined');

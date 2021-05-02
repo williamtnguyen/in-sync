@@ -21,7 +21,7 @@ async function attachSocketEvents(io: WebSocketServer) {
       // tslint:disable-next-line: no-console
       console.log('join broadcast triggered');
 
-      const { roomId, clientId } = clientData;
+      const { roomId, redisClientId } = clientData;
 
       socket.join(roomId);
 
@@ -29,17 +29,17 @@ async function attachSocketEvents(io: WebSocketServer) {
       if (workerIndex + 1 === workers.length) workerIndex = 0;
 
       await Rooms.addRoom(roomId, worker);
-      Rooms.addClient(roomId, clientId);
+      Rooms.addClient(roomId, socket.id, redisClientId);
     });
 
     socket.on('getRtpCapabilities', (data, callback) => {
-      const { redisClientId } = data;
-      console.log(redisClientId, data);
+      const redisClientId = Rooms.getRedisClientId(socket.id);
       const roomId = Rooms.getClientRoomId(redisClientId);
       callback(Rooms.getRtpCapabilities(roomId));
     });
 
-    socket.on('getProducers', (redisClientId) => {
+    socket.on('getProducers', () => {
+      const redisClientId = Rooms.getRedisClientId(socket.id);
       const roomId = Rooms.getClientRoomId(redisClientId);
       const roomClients = Rooms.getRoomClients(roomId);
 
@@ -56,15 +56,15 @@ async function attachSocketEvents(io: WebSocketServer) {
     });
 
     socket.on('createTransport', async (data, callback) => {
-      const { redisClientId } = data;
-      // const client = Rooms.getClient(redisClientId);
+      const redisClientId = Rooms.getRedisClientId(socket.id);
       const roomId = Rooms.getClientRoomId(redisClientId);
       callback(await Rooms.createTransport(redisClientId, roomId));
     });
 
     socket.on(
       'connectTransport',
-      async ({ transportId, dtlsParameters, redisClientId }, callback) => {
+      async ({ transportId, dtlsParameters }, callback) => {
+        const redisClientId = Rooms.getRedisClientId(socket.id);
         const client = Rooms.getClient(redisClientId);
         await Rooms.addTransport(client, transportId, dtlsParameters);
         callback('success');
@@ -73,10 +73,8 @@ async function attachSocketEvents(io: WebSocketServer) {
 
     socket.on(
       'produce',
-      async (
-        { producerTransportId, mediaType, rtpParameters, redisClientId },
-        callback
-      ) => {
+      async ({ producerTransportId, mediaType, rtpParameters }, callback) => {
+        const redisClientId = Rooms.getRedisClientId(socket.id);
         const client = Rooms.getClient(redisClientId);
         const roomId = Rooms.getClientRoomId(redisClientId);
 
@@ -96,9 +94,10 @@ async function attachSocketEvents(io: WebSocketServer) {
     socket.on(
       'consume',
       async (
-        { consumerTransportId, producerId, rtpCapabilities, redisClientId },
+        { consumerTransportId, producerId, rtpCapabilities },
         callback
       ) => {
+        const redisClientId = Rooms.getRedisClientId(socket.id);
         const client = Rooms.getClient(redisClientId);
         const consumerResult = await Rooms.addConsumer(
           io,
@@ -116,12 +115,13 @@ async function attachSocketEvents(io: WebSocketServer) {
       }
     );
 
-    socket.on('producerClosed', ({ producerId, redisClientId }) => {
+    socket.on('producerClosed', ({ producerId }) => {
+      const redisClientId = Rooms.getRedisClientId(socket.id);
       Rooms.closeProducer(redisClientId, producerId);
     });
 
-    // Manually emitted event from client side to close transports/remove from roomMap
-    socket.on('removeClientFromServer', (redisClientId) => {
+    socket.on('disconnect', () => {
+      const redisClientId = Rooms.getRedisClientId(socket.id);
       const client = Rooms.getClient(redisClientId);
       const roomId = Rooms.getClientRoomId(redisClientId);
       const room = Rooms.getRoom(roomId);
@@ -135,6 +135,7 @@ async function attachSocketEvents(io: WebSocketServer) {
         }
       }
       Rooms.closeTransports(client);
+      Rooms.removeClient(roomId, socket.id, redisClientId);
     });
   });
 }
