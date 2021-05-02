@@ -204,7 +204,7 @@ async function attachSocketEvents(io: WebSocketServer) {
     socket.on(
       'waitingResponse',
       ({ socketId, status }: { socketId: string; status: string }) => {
-        Rooms.removeFromWaiting(socketId);
+        if (status === 'accept') Rooms.removeFromWaiting(socketId);
         io.to(socketId).emit(status);
       }
     );

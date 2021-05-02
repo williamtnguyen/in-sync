@@ -141,7 +141,10 @@ const Room = ({ location, match }: RoomProps & any) => {
           setCanEnter(true);
           await enterRoom(socketConnection);
         });
-        socketConnection.on('decline', () => history.push('/'));
+        socketConnection.on('decline', () => {
+          socketConnection.disconnect();
+          history.push('/');
+        });
 
         const admitClient = async () => {
           rejoinSocket(roomId, socketConnection);
