@@ -1,6 +1,5 @@
 import { mediasoupEvent } from './helpers';
 import { Device, types as mediasoupType } from 'mediasoup-client';
-import { Client } from '../../../server/utils/Rooms';
 
 export class MediasoupPeer {
   private socket: SocketIOClient.Socket;
@@ -11,7 +10,7 @@ export class MediasoupPeer {
   private consumerTransport: mediasoupType.Transport | undefined;
   private producerId: string | undefined;
   private remoteAudiosDiv: HTMLElement | null;
-  private tempClients: Client[] | undefined;
+  private tempClients: string[] | undefined;
   private redisClientId: string;
 
   constructor(
@@ -70,16 +69,16 @@ export class MediasoupPeer {
         clients,
       }: {
         clientVolumes: { [clientId: string]: number };
-        clients: Client[];
+        clients: string[];
       }) => {
         if (clients === undefined && this.tempClients === undefined) return;
         if (clients !== undefined) this.tempClients = clients;
 
-        this.tempClients?.forEach((client) => {
+        this.tempClients?.forEach((redisClientId) => {
           const speakerAvatar: any = document.getElementsByClassName(
-            client.id
+            redisClientId
           )[0];
-          if (clientVolumes !== null && client.id in clientVolumes) {
+          if (clientVolumes !== null && redisClientId in clientVolumes) {
             speakerAvatar.style.backgroundColor = '#87d068';
           } else {
             if (speakerAvatar !== undefined) speakerAvatar.style = null;

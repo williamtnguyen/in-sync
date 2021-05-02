@@ -282,12 +282,14 @@ class Rooms {
   setAudioObserverEvents(room: Room, io: WebSocketServer, roomId: string) {
     this.audioObserver?.on('volumes', (volumes) => {
       const clientVolumes: { [clientId: string]: number } = {};
+      let clients: string[] = [];
       for (const volume of volumes) {
         clientVolumes[volume.producer.appData.clientId] = volume.volume;
       }
+      room.clients.forEach(client => clients.push(client.redisClientId));
       io.to(roomId).emit('activeSpeaker', {
         clientVolumes,
-        clients: room.clients,
+        clients,
       });
     });
 

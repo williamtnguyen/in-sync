@@ -111,12 +111,12 @@ const Room = ({ location, match }: RoomProps & any) => {
         youtubeID: roomYoutubeId,
       });
       setCanEnter(true);
-      // attachHostNotifs(location.socket);
+      attachHostNotifs(location.socket);
       setSessionSocket(location.socket);
       subscribeToHostEvents(location.socket);
       subscribeToClientListUpdates(location.socket);
       subscribeToRoomEvents(location.socket, dispatches);
-      await startAudioCall(location.socket.id);
+      await startAudioCall(location.socket.id, location.socket);
     }
     // Joining client from landing, inputted displayName, or Room client
     // that already made connection and refreshed
@@ -247,14 +247,14 @@ const Room = ({ location, match }: RoomProps & any) => {
     subscribeToClientListUpdates(connectingSocket);
     subscribeToPlaylistUpdates(connectingSocket);
     subscribeToRoomEvents(connectingSocket, dispatches);
-    await startAudioCall(connectingSocket.id);
+    await startAudioCall(connectingSocket.id, connectingSocket);
   };
 
-  const startAudioCall = async (redisClientId: string) => {
+  const startAudioCall = async (redisClientId: string, connectingSocket: SocketIOClient.Socket) => {
     const { roomId } = match.params;
     const rtcSocket = await openRtcSocket(roomId, redisClientId);
     const deviceId = await setMediaDevices();
-    await startMediasoup(rtcSocket, deviceId);
+    await startMediasoup(rtcSocket, deviceId, connectingSocket);
   };
 
   const setMediaDevices = async () => {
@@ -277,11 +277,12 @@ const Room = ({ location, match }: RoomProps & any) => {
 
   const startMediasoup = async (
     rtcSocket: SocketIOClient.Socket,
-    audioDeviceId: string
+    audioDeviceId: string,
+    connectingSocket: SocketIOClient.Socket
   ) => {
     const peer = new MediasoupPeer(
       rtcSocket,
-      sessionSocket.id,
+      connectingSocket.id,
       remoteAudiosDiv
     );
     setMediasoupPeer(peer);
