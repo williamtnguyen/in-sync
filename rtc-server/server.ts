@@ -8,8 +8,8 @@ const server: Server = http.createServer(app);
 const io: WebSocketServer = socketIo(server, { serveClient: false });
 attachSocketEvents(io);
 
-const PORT: string | number = process.env.PORT || 5000;
+const PORT: string | number = process.env.PORT || 4000;
 server.listen(PORT, () =>
   // tslint:disable-next-line: no-console
-  console.log(`🚀 Session Server running on port ${PORT}`)
+  console.log(`🔊 Voice Server running on port ${PORT}`)
 );

@@ -1,4 +1,4 @@
-const os = require('os');
+import os from 'os';
 
 module.exports = {
   listenIp: '0.0.0.0',
@@ -7,7 +7,7 @@ module.exports = {
   sslKey: './ssl-snakeoil.key',
   mediasoup: {
     // Worker settings
-    numWorkers : Object.keys(os.cpus()).length,
+    numWorkers: Object.keys(os.cpus()).length,
     worker: {
       rtcMinPort: 10000,
       rtcMaxPort: 10100,
@@ -28,23 +28,25 @@ module.exports = {
     },
     // Router settings
     router: {
-      codecs: [{
-        kind: 'audio',
-        mimeType: 'audio/opus',
-        clockRate: 48000,
-        channels: 2
-      }]
+      codecs: [
+        {
+          kind: 'audio',
+          mimeType: 'audio/opus',
+          clockRate: 48000,
+          channels: 2,
+        },
+      ],
     },
     // WebRtcTransport settings
     webRtcTransport: {
       listenIps: [
         {
           ip: '0.0.0.0',
-          announcedIp:'127.0.0.1' // replace by public IP address
-        }
+          announcedIp: '127.0.0.1', // replace by public IP address
+        },
       ],
       maxIncomingBitrate: 1500000,
       initialAvailableOutgoingBitrate: 1000000,
-    }
-  }
+    },
+  },
 };

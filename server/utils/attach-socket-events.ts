@@ -7,17 +7,11 @@ import {
   deletePlaylistItem,
   movePlaylistItem,
 } from './socket-notifier';
-import { types as mediasoupType } from 'mediasoup';
 
-const mediasoup = require('mediasoup');
-const mediasoupConfig = require('../mediasoup-config');
-
-const socketHandler = async (io: WebSocketServer) => {
-  const workers: mediasoupType.Worker[] = [];
-  let workerIndex = 0;
-  await createMediasoupWorkers(workers);
-
-  // Client connection event
+/**
+ * Attaches event listeners to socket instance
+ */
+async function attachSocketEvents(io: WebSocketServer) {
   io.on('connection', (socket: Socket) => {
     // tslint:disable-next-line: no-console
     console.log(`\nNew socket established: ${socket.id}`);
@@ -26,14 +20,18 @@ const socketHandler = async (io: WebSocketServer) => {
     socket.on('join', async (clientData) => {
       // tslint:disable-next-line: no-console
       console.log('join broadcast triggered');
-      const { roomId, clientId, clientName, youtubeID, roomType, canJoin } = clientData;
+      const {
+        roomId,
+        clientId,
+        clientName,
+        youtubeID,
+        roomType,
+        canJoin,
+      } = clientData;
       if (canJoin) {
         socket.join(roomId);
 
-        const worker = getMediasoupWorker(workerIndex, workers);
-        if (workerIndex + 1 === workers.length) workerIndex = 0;
-
-        await Rooms.addRoom(roomId, youtubeID, worker, roomType);
+        Rooms.addRoom(roomId, youtubeID, roomType);
         Rooms.addClient(roomId, clientId, clientName);
 
         // TODO: not sure if this is listened to on client side
@@ -53,7 +51,6 @@ const socketHandler = async (io: WebSocketServer) => {
           createUserMessage(null, clientId, `${clientName} entered`)
         );
 
-        // TODO: refactor logic without youtubeID in general
         if (!youtubeID) {
           socket.emit(
             'notifyClient',
@@ -67,97 +64,15 @@ const socketHandler = async (io: WebSocketServer) => {
       }
     });
 
-    // -------------------------- MEDIASOUP EVENTS --------------------------
-    socket.on('getRtpCapabilities', (data, callback) => {
-      const client = Rooms.getClient(socket.id);
-      const roomId = Rooms.getClientRoomId(client.id);
-      callback(Rooms.getRtpCapabilities(roomId));
-    });
-
-    socket.on('getProducers', () => {
-      const roomId = Rooms.getClientRoomId(socket.id);
-      const roomClients = Rooms.getRoomClients(roomId);
-
-      const producerIds: { producerId: string }[] = [];
-      roomClients.forEach((client) => {
-        if (client.id !== socket.id) {
-          for (const [producerId, producer] of client.producers) {
-            producerIds.push({ producerId: producer.id });
-          }
-        }
-      });
-
-      socket.emit('newProducers', producerIds);
-    });
-
-    socket.on('createTransport', async (data, callback) => {
-      const client = Rooms.getClient(socket.id);
-      const roomId = Rooms.getClientRoomId(client.id);
-      callback(await Rooms.createTransport(socket.id, roomId));
-    });
-
-    socket.on('connectTransport', async({
-      transportId,
-      dtlsParameters
-    },                                  callback) => {
-      const client = Rooms.getClient(socket.id);
-      await Rooms.addTransport(client, transportId, dtlsParameters);
-      callback('success');
-    });
-
-    socket.on('produce', async ({
-      producerTransportId,
-      mediaType,
-      rtpParameters
-    },                          callback) => {
-      const client = Rooms.getClient(socket.id);
-      const roomId = Rooms.getClientRoomId(client.id);
-
-      // Create client's producer
-      const producerId = await Rooms.addProducer(
-        producerTransportId,
-        rtpParameters,
-        mediaType,
-        client
-      );
-
-      io.to(roomId).emit('newProducers', [{ producerId }]);
-      callback({ producerId });
-    });
-
-    socket.on('consume', async ({
-      consumerTransportId,
-      producerId,
-      rtpCapabilities,
-    },                          callback) => {
-      const client = Rooms.getClient(socket.id);
-      const consumerResult = await Rooms.addConsumer(
-        io,
-        socket,
-        client,
-        consumerTransportId,
-        producerId,
-        rtpCapabilities
-      );
-
-      if (consumerResult === undefined) throw new Error('Unable to create consumer');
-      const { consumerParams } = consumerResult;
-      callback(consumerParams);
-    });
-
-    socket.on('producerClosed', ({ producerId }) => {
-      Rooms.closeProducer(socket.id, producerId);
-    });
-
     // -------------------------- YOUTUBE EVENTS --------------------------
     socket.on('videoStateChange', (data) => {
       const client = Rooms.getClient(socket.id);
       let message = `${client.name} `;
       switch (data.type) {
-        case('PLAY_VIDEO'):
+        case 'PLAY_VIDEO':
           message += 'started the video';
           break;
-        case('PAUSE_VIDEO'):
+        case 'PAUSE_VIDEO':
           message += 'paused the video';
           break;
       }
@@ -246,7 +161,9 @@ const socketHandler = async (io: WebSocketServer) => {
     socket.on('insertVideoAtIndex', ({ oldIndex, newIndex }) => {
       const client = Rooms.getClient(socket.id);
       const roomId = Rooms.getClientRoomId(client.id);
-      const message = `${client.name} swapped playlist item #${oldIndex + 1} with item #${newIndex + 1}`;
+      const message = `${client.name} swapped playlist item #${
+        oldIndex + 1
+      } with item #${newIndex + 1}`;
 
       Rooms.moveVideo(roomId, oldIndex, newIndex);
       const newPlaylist: string[] = Rooms.getPlaylistVideoIds(roomId);
@@ -259,33 +176,38 @@ const socketHandler = async (io: WebSocketServer) => {
     });
 
     // -------------------------- WAITING ROOM EVENTS --------------------------
-    socket.on('getRoomType', async (
-      { clientName, roomId }: { clientName: string, roomId: string },
-      callback
-    ) => {
-      const room = Rooms.getRoom(roomId);
-      const roomType = room.roomType;
-      if (roomType === 'private') {
-        // Update waiting clients and list in the room
-        room.waitingClients = {
-          ...room.waitingClients,
-          [socket.id]: clientName
-        };
-        Rooms.addToWaitingList(socket.id, roomId);
+    socket.on(
+      'getRoomType',
+      async (
+        { clientName, roomId }: { clientName: string; roomId: string },
+        admitClient: () => Promise<void>
+      ) => {
+        const room = Rooms.getRoom(roomId);
+        const roomType = room.roomType;
+        if (roomType === 'private') {
+          // Update waiting clients and list in the room
+          room.waitingClients = {
+            ...room.waitingClients,
+            [socket.id]: clientName,
+          };
+          Rooms.addToWaitingList(socket.id, roomId);
 
-        // Update waiting clients on the client side of the host
-        io.to(room.hostId).emit('waitingClient', { socketId: socket.id, clientName });
+          io.to(room.hostId).emit('waitingClient', {
+            waitingClients: room.waitingClients,
+          });
+        } else {
+          await admitClient();
+        }
       }
+    );
 
-      await callback(roomType);
-    });
-
-    socket.on('waitingResponse', (
-      { socketId, status }: { socketId: string, status: string }
-    ) => {
-      Rooms.removeFromWaiting(socketId);
-      io.to(socketId).emit(status);
-    });
+    socket.on(
+      'waitingResponse',
+      ({ socketId, status }: { socketId: string; status: string }) => {
+        if (status === 'accept') Rooms.removeFromWaiting(socketId);
+        io.to(socketId).emit(status);
+      }
+    );
 
     // -------------------------- OTHER EVENTS --------------------------
     socket.on('mute', ({ id }) => {
@@ -293,7 +215,7 @@ const socketHandler = async (io: WebSocketServer) => {
       const roomId = Rooms.getClientRoomId(client.id);
       const newClients = Rooms.updateMute(id, roomId);
       let message = `${client.name} `;
-      client.isMuted ? message += 'muted' : message += 'unmuted';
+      client.isMuted ? (message += 'muted') : (message += 'unmuted');
 
       io.to(roomId).emit('updateClientList', newClients);
       io.to(Rooms.getClientRoomId(client.id)).emit(
@@ -313,17 +235,18 @@ const socketHandler = async (io: WebSocketServer) => {
         if (socket.id === room.hostId) {
           if (room.clients.length - 1 !== 0) {
             room.hostId = room.clients[1].id;
-            socket.to(roomId).emit('newHost', room.clients[1].name, room.hostId);
+            socket
+              .to(roomId)
+              .emit('newHost', room.clients[1].name, room.hostId);
             io.to(room.hostId).emit('updateWaitingClients', {
               waitingClientList: room.waitingClients,
-              clientIdLeft: ''
+              clientIdLeft: '',
             });
           } else {
             Rooms.closeRoom(roomId);
             return;
           }
         }
-        Rooms.closeTransports(client);
         const newClientList = Rooms.removeClient(roomId, socket.id);
         const message = `${client.name} left`;
         io.to(roomId).emit('updateClientList', newClientList);
@@ -338,41 +261,11 @@ const socketHandler = async (io: WebSocketServer) => {
 
         io.to(room.hostId).emit('updateWaitingClients', {
           waitingClientList: room.waitingClients,
-          clientIdLeft: socket.id
+          clientIdLeft: socket.id,
         });
       }
     });
   });
-};
+}
 
-const createMediasoupWorkers = async (workers: mediasoupType.Worker[]) => {
-  const {
-    numWorkers,
-    logLevel,
-    logTags,
-    rtcMinPort,
-    rtcMaxPort
-  } = mediasoupConfig.mediasoup;
-
-  for (let i = 0; i < numWorkers; i += 1) {
-    const worker = await mediasoup.createWorker({
-      logLevel,
-      logTags,
-      rtcMinPort,
-      rtcMaxPort
-    });
-
-    worker.on('died', () => {
-      throw new Error('worker died');
-    });
-
-    workers.push(worker);
-  }
-};
-
-const getMediasoupWorker = (workerIndex: number, workers: mediasoupType.Worker[]) => {
-  const worker = workers[workerIndex];
-  return worker;
-};
-
-export default socketHandler;
+export default attachSocketEvents;

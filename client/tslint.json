@@ -8,7 +8,7 @@
   ],
   "jsRules": {},
   "rules": {
-    "quotemark": [true, "single", "jsx-double"],
+    "quotemark": false,
     "trailing-comma": [false],
     "object-literal-shorthand": true,
     "object-shorthand-properties-first": false,
@@ -24,7 +24,8 @@
     "align": false,
     "brace-style": false,
     "no-duplicate-imports": false,
-    "no-shadowed-variable": false
+    "no-shadowed-variable": false,
+    "semicolon": false
   },
   "rulesDirectory": []
 }
