@@ -11,7 +11,9 @@ export const openSessionSocket = (
   roomId?: string
 ): Promise<SocketIOClient.Socket> => {
   return new Promise((resolve) => {
-    const socket = io(sessionServerDomain);
+    const socket = io(sessionServerDomain, {
+      path: '/sessionService',
+    });
 
     socket.on('connect', () => {
       const clientData = {

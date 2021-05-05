@@ -7,7 +7,9 @@ export const openRtcSocket = (
   redisClientId: string
 ): Promise<SocketIOClient.Socket> => {
   return new Promise((resolve) => {
-    const socket = io(rtcServerDomain);
+    const socket = io(rtcServerDomain, {
+      path: '/rtcService',
+    });
 
     socket.on('connect', () => {
       const clientData = {

@@ -15,15 +15,21 @@ interface PlaylistMap {
 
 /**
  * Playlist class implemented with Doubly-Linked-List and HashMap
- * for O(1) node insertion/deletion/mutation
  */
 export class Playlist {
   private list: typeof LinkedList;
   private map: PlaylistMap; // maps array position to node pointer
 
-  constructor() {
-    this.list = new LinkedList();
+  // costly initialization but the most seamless refactor
+  constructor(playlistSnapshot: string[]) {
     this.map = {};
+    this.list = new LinkedList();
+
+    playlistSnapshot.forEach((youtubeId: string, index: number) => {
+      const node = new VideoNode(youtubeId);
+      this.list.append(node);
+      this.map[index] = node;
+    });
   }
 
   getYoutubeIDAtIndex(videoIndex: number): string {
@@ -82,4 +88,4 @@ export class Playlist {
   }
 }
 
-export default new Playlist();
+export default Playlist;

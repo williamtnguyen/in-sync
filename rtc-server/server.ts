@@ -1,11 +1,18 @@
 import express, { Application } from 'express';
-import http, { Server } from 'http';
-import socketIo, { Server as WebSocketServer } from 'socket.io';
+import http, { Server as HttpServer } from 'http';
+import { Server as WebSocketServer } from 'socket.io';
 import attachSocketEvents from './utils/attach-socket-events';
 
 const app: Application = express();
-const server: Server = http.createServer(app);
-const io: WebSocketServer = socketIo(server, { serveClient: false });
+const server: HttpServer = http.createServer(app);
+const io: WebSocketServer = new WebSocketServer(server, {
+  serveClient: false,
+  path: '/rtcService',
+  cors: {
+    methods: ['GET', 'PATCH', 'POST', 'PUT'],
+    origin: true,
+  },
+});
 attachSocketEvents(io);
 
 const PORT: string | number = process.env.PORT || 4000;
