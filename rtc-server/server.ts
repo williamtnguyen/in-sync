@@ -1,11 +1,17 @@
 import express, { Application } from 'express';
 import http, { Server } from 'http';
-import socketIo, { Server as WebSocketServer } from 'socket.io';
+import { Server as WebSocketServer } from 'socket.io';
 import attachSocketEvents from './utils/attach-socket-events';
 
 const app: Application = express();
 const server: Server = http.createServer(app);
-const io: WebSocketServer = socketIo(server, { serveClient: false });
+const io: WebSocketServer = require('socket.io')(server, {
+  serveClient: false,
+  cors: {
+    methods: ['GET', 'PATCH', 'POST', 'PUT'],
+    origin: true,
+  },
+});
 attachSocketEvents(io);
 
 const PORT: string | number = process.env.PORT || 4000;

@@ -1,0 +1,62 @@
+# Spins up dev environment
+version: '3'
+services:
+  # react dev server
+  frontendServer:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    image: insync-client-dev
+    container_name: insync-client-react-dev
+    volumes:
+      - /client/node_modules
+    ports:
+      - '3000:3000'
+
+  # Reverse proxy/load balancer
+  nginx:
+    build: ./nginx
+    depends_on:
+      - frontendServer
+    ports:
+      - '5000:80'
+
+  # socketio session dev server
+  sessionServer:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: insync-session-dev
+    container_name: insync-session-server-dev
+    volumes:
+      - /server/node_modules
+    expose:
+      - '5000'
+    depends_on:
+      - redisSocketIoAdapter
+      - redisRoomState
+      - redisClientRoomId
+      - redisWaitingRoomId
+    environment:
+      - NAME=willThisWork
+
+  # spin up 4 redis containers, 1 for socket.io adapter, 3 for holding room state
+  redisSocketIoAdapter:
+    image: redis:alpine
+    expose:
+      - '6379'
+  redisRoomState:
+    image: redis:alpine
+    command: --port 6380
+    expose:
+      - '6380'
+  redisClientRoomId:
+    image: redis:alpine
+    command: --port 6381
+    expose:
+      - '6381'
+  redisWaitingRoomId:
+    image: redis:alpine
+    command: --port 6382
+    expose:
+      - '6382'

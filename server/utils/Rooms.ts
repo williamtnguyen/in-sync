@@ -1,4 +1,13 @@
 import { Playlist } from './Playlist';
+import redisClients from './redis-clients';
+const {
+  roomStateClient,
+  getRoomState,
+  clientRoomIdClient,
+  getClientRoomId,
+  waitingRoomIdClient,
+  getWaitingClientRoomId,
+} = redisClients;
 
 export interface ClientMap {
   [clientId: string]: string;
@@ -13,7 +22,8 @@ export interface Client {
 export interface Room {
   clients: Client[];
   youtubeID: string;
-  playlist: Playlist;
+  // playlist: Playlist;
+  playlist: string[];
   roomType: string;
   hostId: string;
   waitingClients: { [socketId: string]: string };
@@ -24,172 +34,326 @@ export interface RoomMap {
 }
 
 /**
- * Singleton class that aggregates/encapsulates all room information in WebSocketServer
+ * Singleton class that interfaces Redis state read/written to by all machines
  */
 class Rooms {
-  private roomMap: RoomMap;
-  private clientMap: ClientMap; // maps any socket.id to its respective roomId
-  // used in disconnect to find if a user is in a waiting room of a room
-  private waitingList: { [socketId: string]: string };
+  // private roomMap: RoomMap;
+  // private clientMap: ClientMap; // maps any socket.id to its respective roomId
+  // // used in disconnect to find if a user is in a waiting room of a room
+  // private waitingList: { [socketId: string]: string };
 
-  constructor() {
-    this.roomMap = {};
-    this.clientMap = {};
-    this.waitingList = {}; // socketid -> roomId
+  // constructor() {
+  //   this.roomMap = {};
+  //   this.clientMap = {};
+  //   this.waitingList = {}; // socketid -> roomId
+  // }
+
+  closeRoom(roomId: string): void {
+    // delete this.roomMap[roomId];
+    roomStateClient.DEL(roomId);
   }
 
-  closeRoom(roomId: string) {
-    delete this.roomMap[roomId];
-  }
-
-  addRoom(roomId: string, youtubeID: string, roomType: string) {
-    if (!this.roomMap[roomId]) {
-      const roomDetails = {
+  async addRoom(
+    roomId: string,
+    youtubeID: string,
+    roomType: string
+  ): Promise<void> {
+    const roomExists: string | null = await getRoomState(roomId);
+    if (!roomExists) {
+      const roomDetails: Room = {
         clients: [],
         youtubeID,
-        playlist: new Playlist(),
+        // playlist: new Playlist(),
+        playlist: [],
         roomType,
         hostId: roomId,
         waitingClients: {}, // socketId -> name
       };
-      this.roomMap[roomId] = roomDetails;
+      // this.roomMap[roomId] = roomDetails;
+      roomStateClient.SET(roomId, JSON.stringify(roomDetails));
     }
   }
 
-  getRoomClients(roomId: string): Client[] {
-    if (this.roomMap[roomId]) {
-      return this.roomMap[roomId].clients;
+  async getRoomClients(roomId: string): Promise<Client[]> {
+    // if (this.roomMap[roomId]) {
+    //   return this.roomMap[roomId].clients;
+    // }
+    // throw new Error('Room with this ID does not exist');
+    const roomSnapshot: string | null = await getRoomState(roomId);
+    if (roomSnapshot) {
+      return JSON.parse(roomSnapshot).clients;
     }
     throw new Error('Room with this ID does not exist');
   }
 
-  addClient(roomId: string, clientId: string, clientName: string): void {
-    if (this.clientMap[clientId]) {
+  async addClient(
+    roomId: string,
+    clientId: string,
+    clientName: string
+  ): Promise<void> {
+    // if (this.clientMap[clientId]) {
+    //   return;
+    // }
+    // if (this.roomMap[roomId]) {
+    //   const newClient: Client = {
+    //     id: clientId,
+    //     name: clientName,
+    //     isMuted: false,
+    //   };
+    //   this.roomMap[roomId].clients.push(newClient);
+    //   this.clientMap[clientId] = roomId;
+    //   const room = this.getRoom(roomId);
+    //   if (room.hostId.length === 0) room.hostId = clientId;
+    // } else {
+    //   throw new Error('Room with this ID does not exist');
+    // }
+    const clientExists: string | null = await getClientRoomId(clientId);
+    const roomExists: string | null = await getRoomState(roomId);
+    if (clientExists) {
       return;
     }
-    if (this.roomMap[roomId]) {
+    if (roomExists) {
       const newClient: Client = {
         id: clientId,
         name: clientName,
         isMuted: false,
       };
-      this.roomMap[roomId].clients.push(newClient);
-      this.clientMap[clientId] = roomId;
-      const room = this.getRoom(roomId);
-      if (room.hostId.length === 0) room.hostId = clientId;
+      const roomSnapshot: Room = JSON.parse(roomExists);
+      roomSnapshot.clients.push(newClient);
+      if (!roomSnapshot.hostId) {
+        roomSnapshot.hostId = clientId;
+      }
+
+      roomStateClient.SET(roomId, JSON.stringify(roomSnapshot));
+      clientRoomIdClient.SET(clientId, roomId);
     } else {
       throw new Error('Room with this ID does not exist');
     }
   }
 
-  removeClient(roomId: string, clientId: string) {
-    if (!this.clientMap[clientId]) {
+  async removeClient(
+    roomId: string,
+    clientId: string
+  ): Promise<Client[] | void> {
+    // if (!this.clientMap[clientId]) {
+    //   return;
+    // }
+    // if (this.roomMap[roomId]) {
+    //   const clientList: Client[] = this.getRoomClients(roomId);
+    //   for (let i = 0; i < clientList.length; i += 1) {
+    //     const client = clientList[i];
+    //     if (client.id === clientId) {
+    //       clientList.splice(i, 1);
+    //       return clientList;
+    //     }
+    //   }
+    // } else {
+    //   throw new Error('Room with this ID does not exist');
+    // }
+    const clientExists: string | null = await getClientRoomId(clientId);
+    const roomExists: string | null = await getRoomState(roomId);
+    if (!clientExists) {
       return;
     }
-    if (this.roomMap[roomId]) {
-      const clientList: Client[] = this.getRoomClients(roomId);
-      for (let i = 0; i < clientList.length; i += 1) {
-        const client = clientList[i];
+    if (roomExists) {
+      const roomSnapshot: Room = JSON.parse(roomExists);
+      for (let i = 0; i < roomSnapshot.clients.length; i += 1) {
+        const client: Client = roomSnapshot.clients[i];
         if (client.id === clientId) {
-          clientList.splice(i, 1);
-          return clientList;
+          roomSnapshot.clients.splice(i, 1);
+          roomStateClient.SET(roomId, JSON.stringify(roomSnapshot));
         }
       }
+      return roomSnapshot.clients;
     } else {
       throw new Error('Room with this ID does not exist');
     }
   }
 
-  getClientRoomId(clientId: string): string {
-    if (this.clientMap[clientId]) {
-      return this.clientMap[clientId];
+  async getClientRoomId(clientId: string): Promise<string> {
+    // if (this.clientMap[clientId]) {
+    //   return this.clientMap[clientId];
+    // }
+    // throw new Error('This client ID does not exist');
+    const clientRoomId: string | null = await getClientRoomId(clientId);
+    if (clientRoomId) {
+      return clientRoomId;
     }
     throw new Error('This client ID does not exist');
   }
 
-  getClient(clientId: string): Client {
-    const roomId: string = this.getClientRoomId(clientId);
-    const clientList: Client[] = this.getRoomClients(roomId);
-    const lookup: Client | undefined = clientList.find(
+  async getClient(clientId: string): Promise<Client> {
+    // const roomId: string = this.getClientRoomId(clientId);
+    // const clientList: Client[] = this.getRoomClients(roomId);
+    // const lookup: Client | undefined = clientList.find(
+    //   (client: Client) => client.id === clientId
+    // );
+
+    // if (!lookup) {
+    //   throw new Error('No clients with this ID exist in any rooms');
+    // } else {
+    //   return lookup;
+    // }
+    const clientRoomId: string | null = await getClientRoomId(clientId);
+    if (!clientRoomId) throw new Error('Client with this ID does not exist');
+    const roomSnapshot: string | null = await getRoomState(clientRoomId);
+    if (!roomSnapshot) throw new Error('Room with this ID does not exist');
+
+    const lookup: Client | undefined = JSON.parse(roomSnapshot).clients.find(
       (client: Client) => client.id === clientId
     );
-
     if (!lookup) {
-      throw new Error('No clients with this ID exist in any rooms');
+      throw new Error(
+        'clientRoomIdClient has this client ID, but it does not exist in room!'
+      );
     } else {
       return lookup;
     }
   }
 
-  isInWaitingList(clientId: string): boolean {
-    if (this.waitingList[clientId] === undefined) return false;
-    return true;
+  async isInWaitingList(clientId: string): Promise<boolean> {
+    // if (this.waitingList[clientId] === undefined) return false;
+    // return true;
+    const isWaiting: string | null = await getWaitingClientRoomId(clientId);
+    return isWaiting ? true : false;
   }
 
-  addToWaitingList(socketId: string, roomId: string): void {
-    this.waitingList[socketId] = roomId;
+  mapClientIdToRoomId(socketId: string, roomId: string): void {
+    // this.waitingList[socketId] = roomId;
+    waitingRoomIdClient.SET(socketId, roomId);
   }
 
-  removeFromWaiting(socketId: string): void {
-    const roomId = this.waitingList[socketId];
-    const room = this.getRoom(roomId);
-    delete this.waitingList[socketId];
-    delete room.waitingClients[socketId];
+  async removeFromWaiting(socketId: string): Promise<void> {
+    // const roomId = this.waitingList[socketId];
+    // const room = this.getRoom(roomId);
+    // delete this.waitingList[socketId];
+    // delete room.waitingClients[socketId];
+    const waitingClientRoomId: string | null = await getWaitingClientRoomId(
+      socketId
+    );
+    if (!waitingClientRoomId)
+      throw new Error('This client is not in a waiting list');
+    const roomExists: string | null = await getRoomState(waitingClientRoomId);
+    if (!roomExists) throw new Error('Room with this ID does not exist');
+    const roomSnapshot: Room = JSON.parse(roomExists);
+    delete roomSnapshot.waitingClients[socketId];
+    roomStateClient.SET(waitingClientRoomId, JSON.stringify(roomSnapshot));
+    waitingRoomIdClient.DEL(socketId);
   }
 
-  getWaitingClientRoomId(socketId: string): string {
-    return this.waitingList[socketId];
+  async getWaitingClientRoomId(socketId: string): Promise<string> {
+    // return this.waitingList[socketId];
+    const waitingClientRoomId: string | null = await getWaitingClientRoomId(
+      socketId
+    );
+    if (!waitingClientRoomId) {
+      throw new Error('This client is not in a waiting list');
+    }
+    return waitingClientRoomId;
   }
 
-  updateMute(id: string, roomId: string): Client[] {
-    const clients = this.getRoomClients(roomId);
-    for (const client of clients) {
+  async updateMute(id: string, roomId: string): Promise<Client[]> {
+    // const clients = this.getRoomClients(roomId);
+    // for (const client of clients) {
+    //   if (client.id === id) client.isMuted = !client.isMuted;
+    // }
+    // return clients;
+    const roomExists: string | null = await getRoomState(roomId);
+    if (!roomExists) throw new Error('Room with this ID does not exist');
+    const roomSnapshot: Room = JSON.parse(roomExists);
+    for (const client of roomSnapshot.clients) {
       if (client.id === id) client.isMuted = !client.isMuted;
     }
-    return clients;
+    roomStateClient.SET(roomId, JSON.stringify(roomSnapshot));
+    return roomSnapshot.clients;
   }
 
-  getRoom(roomID: string) {
-    return this.roomMap[roomID];
+  async getRoom(roomID: string): Promise<Room> {
+    // return this.roomMap[roomID];
+    const roomExists: string | null = await getRoomState(roomID);
+    if (!roomExists) throw new Error('Room with this ID does not exist');
+    return JSON.parse(roomExists);
   }
 
-  setVideoLink(roomID: string, newYoutubeID: string): void {
-    if (this.roomMap[roomID]) {
-      this.roomMap[roomID].youtubeID = newYoutubeID;
-    }
+  async setVideoLink(roomID: string, newYoutubeID: string): Promise<void> {
+    // if (this.roomMap[roomID]) {
+    //   this.roomMap[roomID].youtubeID = newYoutubeID;
+    // }
+    const roomExists: string | null = await getRoomState(roomID);
+    if (!roomExists) throw new Error('Room with this ID does not exist');
+    const roomSnapshot: Room = JSON.parse(roomExists);
+    roomSnapshot.youtubeID = newYoutubeID;
+    roomStateClient.SET(roomID, JSON.stringify(roomSnapshot));
   }
 
-  addVideo(roomID: string, youtubeID: string): void {
-    if (this.roomMap[roomID]) {
-      this.roomMap[roomID].playlist.addVideoToTail(youtubeID);
-    }
+  async addVideo(roomID: string, youtubeID: string): Promise<void> {
+    // if (this.roomMap[roomID]) {
+    //   this.roomMap[roomID].playlist.addVideoToTail(youtubeID);
+    // }
+    const roomExists: string | null = await getRoomState(roomID);
+    if (!roomExists) throw new Error('Room with this ID does not exist');
+    const roomSnapshot: Room = JSON.parse(roomExists);
+    const playlistMutator = new Playlist(roomSnapshot.playlist);
+    playlistMutator.addVideoToTail(youtubeID);
+    roomSnapshot.playlist = playlistMutator.getPlaylistIds();
+    roomStateClient.SET(roomID, JSON.stringify(roomSnapshot));
   }
 
-  deleteVideo(roomID: string, videoIndex: number): void {
-    if (this.roomMap[roomID]) {
-      this.roomMap[roomID].playlist.deleteVideoAtIndex(videoIndex);
-    }
+  async deleteVideo(roomID: string, videoIndex: number): Promise<void> {
+    // if (this.roomMap[roomID]) {
+    //   this.roomMap[roomID].playlist.deleteVideoAtIndex(videoIndex);
+    // }
+    const roomExists: string | null = await getRoomState(roomID);
+    if (!roomExists) throw new Error('Room with this ID does not exist');
+    const roomSnapshot: Room = JSON.parse(roomExists);
+    const playlistMutator = new Playlist(roomSnapshot.playlist);
+    playlistMutator.deleteVideoAtIndex(videoIndex);
+    roomSnapshot.playlist = playlistMutator.getPlaylistIds();
+    roomStateClient.SET(roomID, JSON.stringify(roomSnapshot));
   }
 
-  changeVideo(roomID: string, videoIndex: number): string {
-    if (this.roomMap[roomID]) {
-      const youtubeID = this.roomMap[roomID].playlist.getYoutubeIDAtIndex(
-        videoIndex
-      );
-      this.setVideoLink(roomID, youtubeID);
+  async changeVideo(roomID: string, videoIndex: number): Promise<string> {
+    // if (this.roomMap[roomID]) {
+    //   const youtubeID = this.roomMap[roomID].playlist.getYoutubeIDAtIndex(
+    //     videoIndex
+    //   );
+    //   this.setVideoLink(roomID, youtubeID);
 
-      return youtubeID;
-    } else {
-      throw new Error('Room with this ID does not exist');
-    }
+    //   return youtubeID;
+    // } else {
+    //   throw new Error('Room with this ID does not exist');
+    // }
+    const roomExists: string | null = await getRoomState(roomID);
+    if (!roomExists) throw new Error('Room with this ID does not exist');
+    const roomSnapshot: Room = JSON.parse(roomExists);
+    const playlistMutator = new Playlist(roomSnapshot.playlist);
+    const youtubeId = playlistMutator.getYoutubeIDAtIndex(videoIndex);
+    roomSnapshot.youtubeID = youtubeId;
+    roomStateClient.SET(roomID, JSON.stringify(roomSnapshot));
+    return youtubeId;
   }
 
-  moveVideo(roomID: string, oldIndex: number, newIndex: number): void {
-    this.roomMap[roomID].playlist.moveVideoToIndex(oldIndex, newIndex);
+  async moveVideo(
+    roomID: string,
+    oldIndex: number,
+    newIndex: number
+  ): Promise<void> {
+    // this.roomMap[roomID].playlist.moveVideoToIndex(oldIndex, newIndex);
+    const roomExists: string | null = await getRoomState(roomID);
+    if (!roomExists) throw new Error('Room with this ID does not exist');
+    const roomSnapshot: Room = JSON.parse(roomExists);
+    const playlistMutator = new Playlist(roomSnapshot.playlist);
+    playlistMutator.moveVideoToIndex(oldIndex, newIndex);
+    roomSnapshot.playlist = playlistMutator.getPlaylistIds();
+    roomStateClient.SET(roomID, JSON.stringify(roomSnapshot));
   }
 
-  getPlaylistVideoIds(roomId: string): string[] {
-    return this.roomMap[roomId].playlist.getPlaylistIds();
+  async getPlaylistVideoIds(roomId: string): Promise<string[]> {
+    // return this.roomMap[roomId].playlist.getPlaylistIds();
+    const roomExists: string | null = await getRoomState(roomId);
+    if (!roomExists) throw new Error('Room with this ID does not exist');
+    const roomSnapshot: Room = JSON.parse(roomExists);
+    return roomSnapshot.playlist;
   }
 }
 
