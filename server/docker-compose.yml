@@ -1,0 +1,22 @@
+# Spins up all redis containers for development purposes
+version: '3'
+services:
+  redisSocketIoAdapter:
+    image: redis:alpine
+    ports:
+      - '6379:6379'
+  redisRoomState:
+    image: redis:alpine
+    command: --port 6380
+    ports:
+      - '6380:6380'
+  redisClientRoomId:
+    image: redis:alpine
+    command: --port 6381
+    ports:
+      - '6381:6381'
+  redisWaitingRoomId:
+    image: redis:alpine
+    command: --port 6382
+    ports:
+      - '6382:6382'
